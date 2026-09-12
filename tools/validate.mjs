@@ -16,13 +16,17 @@ import {
   translationClusters,
 } from "../src/data/pages.mjs";
 import {
+  ANALYTICS,
   DISCORD,
   PAYMENT_POLICY,
+  REPUTATION,
   SERVER_ORDER,
   SERVERS,
+  UI_COPY,
   formatCommercialPaymentFaqAnswer,
   formatCommercialPaymentFaqQuestion,
   formatPaymentProcessorQuestion,
+  formatReputationText,
   formatSupportedServersFaqAnswer,
   formatUsdAmount,
   site,
@@ -31,6 +35,8 @@ import {
   CSS_BLOCKS,
   COMMERCIAL_CSS_RANGE,
   createPageCss,
+  minifyCss,
+  minifyJavaScript,
 } from "./lib/bundles.mjs";
 import {
   comparePaths,
@@ -41,11 +47,16 @@ import {
   toPosixPath,
 } from "./lib/files.mjs";
 import {
+  extractInlineHeadStyles,
   extractInlineRuntimeScripts,
+  renderAnalytics,
   renderCanonicalAndLanguages,
+  renderCanonicalHomeLinks,
   renderDiscordIdentity,
   renderPaymentPolicy,
   renderPublishedRates,
+  renderReputation,
+  renderSkipLink,
   renderSupportedServersFaq,
 } from "./lib/html-render.mjs";
 import {
@@ -57,6 +68,7 @@ import {
   parseAttributes,
   parseJsonLdScripts,
   resolveLocalUrl,
+  scanHtmlTags,
   toPlainText,
 } from "../scripts/lib/html.mjs";
 
@@ -94,6 +106,10 @@ const SPAWNPK_RANKS = Object.freeze([
 ]);
 
 const SPAWNPK_FEATURES = Object.freeze({
+  "spawnpk-gold.html": {
+    script: "spawnpk-gold.js",
+    hooks: ["data-spawnpk-request-controls", "data-spawnpk-example"],
+  },
   "spawnpk-donator-ranks-guide.html": {
     script: "spawnpk-donator-ranks.js",
     hooks: [
@@ -381,7 +397,7 @@ function bundleSourceMarkers(source, type) {
 }
 
 function expectedBundledCssSource(source) {
-  return String(source)
+  return minifyCss(String(source)
     .replace(/\r\n?/g, "\n")
     .trim()
     .replace(/url\((['"]?)assets\//g, "url($1/assets/")
@@ -392,7 +408,7 @@ function expectedBundledCssSource(source) {
     .replace(
       /assets\/images\/wide_bright_medieval_fantasy_runescape_style_vill\.png/g,
       "assets/images/wide_bright_medieval_fantasy_runescape_style_vill.webp",
-    );
+    ));
 }
 
 function normalizedHeadingSequence(html, file) {
@@ -691,12 +707,28 @@ function cssRangeStatus(source, range) {
 }
 
 function validateFocusedMutations(report) {
+  mutationCheck(report, "routes", "HOME_ALIAS_LINK_REWRITE_UNSAFE",
+    "tools/lib/html-render.mjs", "Normalize only home navigation aliases and preserve language, fragments, queries and raw text.", () => {
+      const fixture = `<a href="index.html#buy-gold">Local</a><a href='../index.html?q=a&amp;b=2#servers'>English</a>` +
+        `<a title="a > b" href=/es/index.html>Spanish</a><a href="${site.origin}/index.html">Absolute</a>` +
+        `<a href="https://other.invalid/index.html">External</a><a href="#faq">Fragment</a>` +
+        `<a href="/guides/index.html">Other directory</a><a download href="/index.html">Download</a>` +
+        `<!-- <a href="/index.html">Comment</a> --><script>var example = '<a href="/index.html">';</script>`;
+      const result = renderCanonicalHomeLinks(fixture, `${site.origin}/es/spawnpk-gold.html`);
+      const links = scanHtmlTags(result).filter(t => t.name === "a" && !t.closing).map(t => t.attributes.href);
+      return JSON.stringify(links) === JSON.stringify([
+        "/es/#buy-gold", "/?q=a&b=2#servers", "/es/", "/",
+        "https://other.invalid/index.html", "#faq", "/guides/index.html", "/index.html",
+      ]) && result.includes(`<!-- <a href="/index.html">Comment</a> -->`) &&
+        result.includes(`<script>var example = '<a href="/index.html">';</script>`) &&
+        result === renderCanonicalHomeLinks(result, `${site.origin}/es/spawnpk-gold.html`);
+    });
   mutationCheck(
     report,
     "content",
     "DISCORD_MUTATION_UNSAFE",
     "tools/lib/html-render.mjs",
-    "Changing the configured Discord identity must replace every template username, user ID and profile URL.",
+    "Changing Discord identity must update identity-owned values while preserving immutable third-party reputation URLs.",
     () => {
       const templateUsername = DISCORD.templateUsernames?.[0];
       const templateUserId = DISCORD.templateUserIds?.[0];
@@ -710,14 +742,18 @@ function validateFocusedMutations(report) {
       };
       const fixture =
         `<p>${templateUsername} ${templateUsername.toUpperCase()} ${templateUserId}</p>` +
-        `<a href="https://discord.com/users/${templateUserId}">Discord ${templateUserId}</a>`;
+        `<a href="https://discord.com/users/${templateUserId}">Discord ${templateUserId}</a>` +
+        `<a data-reputation-profile-url="https://www.sythe.org/threads/${templateUsername}-vouches/">Vouches</a>`;
       const rendered = renderDiscordIdentity(fixture, changed);
+      const preservedVouchUrl = `https://www.sythe.org/threads/${templateUsername}-vouches/`;
+      const identityOwned = rendered.replace(preservedVouchUrl, "");
       return (
         rendered.includes(changed.username) &&
         rendered.includes(changed.displayName) &&
         rendered.includes(changed.profileUrl) &&
-        !new RegExp(`\\b${escapeRegExp(templateUsername)}\\b`, "i").test(rendered) &&
-        !rendered.includes(templateUserId)
+        !new RegExp(`\\b${escapeRegExp(templateUsername)}\\b`, "i").test(identityOwned) &&
+        !rendered.includes(templateUserId) &&
+        rendered.includes(preservedVouchUrl)
       );
     },
   );
@@ -752,6 +788,27 @@ function validateFocusedMutations(report) {
       const rendered = formatPaymentProcessorQuestion(changedOrigin);
       return rendered === "Does validator-payment.invalid process payments?" &&
         !rendered.includes(new URL(site.origin).hostname);
+    },
+  );
+
+  mutationCheck(
+    report,
+    "content",
+    "ANALYTICS_INJECTION_UNSAFE",
+    "tools/lib/html-render.mjs",
+    "A configured analytics script must be injected once with defer and its configured domain.",
+    () => {
+      const configured = {
+        domain: "validator.example",
+        scriptUrl: "https://analytics.example/tracker.js",
+      };
+      const rendered = renderAnalytics("<html><head></head><body></body></html>", configured);
+      const scripts = getTagEntries(rendered, "script").filter(
+        ({ attributes }) => Object.hasOwn(attributes, "data-rsps-analytics"),
+      );
+      return scripts.length === 1 && scripts[0].attributes.src === configured.scriptUrl &&
+        scripts[0].attributes["data-domain"] === configured.domain &&
+        Object.hasOwn(scripts[0].attributes, "defer");
     },
   );
 
@@ -924,6 +981,23 @@ function validateFocusedMutations(report) {
   mutationCheck(
     report,
     "build",
+    "NOSCRIPT_CSS_BECOMES_UNCONDITIONAL",
+    "tools/lib/html-render.mjs",
+    "No-JavaScript fallback CSS must remain conditional while ordinary and media styles are bundled.",
+    () => {
+      const fallback = '<noscript><style>.copy-btn{display:none}</style></noscript>';
+      const fixture = '<head><style>.page{color:white}</style>' + fallback +
+        '<style media="print">.page{color:black}</style></head><body></body>';
+      const result = extractInlineHeadStyles(fixture);
+      return result.html.includes(fallback) && !result.css.includes('.copy-btn') &&
+        result.css.includes('.page{color:white}') && result.css.includes('@media print') &&
+        !result.html.includes('media="print"');
+    },
+  );
+
+  mutationCheck(
+    report,
+    "build",
     "DISABLED_JS_LOSS_UNGUARDED",
     "tools/build.mjs",
     "A page manifest that disables JavaScript must reject extracted executable page JavaScript instead of silently dropping it.",
@@ -1031,23 +1105,33 @@ function validateFocusedMutations(report) {
 async function runBuilds(report, rootDir, temporaryDirectories) {
   let first = null;
   let second = null;
+  let firstMap = null;
+  let secondMap = null;
   const prefixes = ["rsps-gold-validate-a-", "rsps-gold-validate-b-"];
   for (const [index, prefix] of prefixes.entries()) {
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
     temporaryDirectories.push(directory);
     try {
       const result = await buildSite({ rootDir, outputDir: directory, quiet: true });
-      if (index === 0) first = result;
-      else second = result;
+      if (index === 0) {
+        first = result;
+        firstMap = await createFileHashMap(directory);
+        // Retain every file hash, then release this complete build before making
+        // the independent second build. This halves peak validation disk usage.
+        if (path.dirname(path.resolve(directory)) !== path.resolve(os.tmpdir()) ||
+            !path.basename(directory).startsWith(prefix)) throw new Error("Unexpected validation cleanup path");
+        await fs.rm(directory, { recursive: true, force: true });
+      } else {
+        second = result;
+        secondMap = await createFileHashMap(directory);
+      }
       check(report, "build", true, "BUILD_FAILED", null, "Build completed.");
     } catch (error) {
       addIssue(report, "build", "BUILD_FAILED", null, `Build ${index + 1} failed: ${error.message}`);
     }
   }
 
-  if (!first || !second) return { first, second, firstMap: null, secondMap: null };
-  const firstMap = await createFileHashMap(first.outputDir);
-  const secondMap = await createFileHashMap(second.outputDir);
+  if (!first || !second || !firstMap || !secondMap) return { first: second, second, firstMap, secondMap };
   const firstFiles = Object.keys(firstMap);
   const secondFiles = Object.keys(secondMap);
   const differing = [...new Set([...firstFiles, ...secondFiles])]
@@ -1064,10 +1148,21 @@ async function runBuilds(report, rootDir, temporaryDirectories) {
       ? `Independent builds differ for: ${differing.slice(0, 8).join(", ")}.`
       : "Independent builds produced different file inventories.",
   );
-  return { first, second, firstMap, secondMap };
+  // Downstream checks inspect the retained build; byte equality was checked above.
+  return { first: second, second, firstMap, secondMap };
 }
 
 function validateHeadingAndHookPreservation(report, page, sourceHtml, generatedHtml) {
+  const renderedSourceContract = renderSkipLink(
+    renderReputation(
+      sourceHtml,
+      page,
+      REPUTATION,
+      { [page.language]: formatReputationText(page.language, REPUTATION) },
+    ),
+    page,
+    UI_COPY,
+  );
   const sourceHeadings = normalizedHeadingSequence(
     renderDiscordIdentity(sourceHtml, DISCORD),
     page.source,
@@ -1082,7 +1177,7 @@ function validateHeadingAndHookPreservation(report, page, sourceHtml, generatedH
     "Generated heading levels/text must exactly preserve the source-template sequence.",
   );
 
-  const sourceIds = publicIdEntries(sourceHtml, page.source).map(({ tagName, id }) => `${tagName}:${id}`);
+  const sourceIds = publicIdEntries(renderedSourceContract, page.source).map(({ tagName, id }) => `${tagName}:${id}`);
   const generatedIds = publicIdEntries(generatedHtml, page.output).map(({ tagName, id }) => `${tagName}:${id}`);
   check(
     report,
@@ -1096,7 +1191,7 @@ function validateHeadingAndHookPreservation(report, page, sourceHtml, generatedH
   check(
     report,
     "features",
-    arraysEqual(dataHookSignatures(sourceHtml), dataHookSignatures(generatedHtml)),
+    arraysEqual(dataHookSignatures(renderedSourceContract), dataHookSignatures(generatedHtml)),
     "DATA_HOOK_CONTRACT_CHANGED",
     page.output,
     "Generated data-* feature hooks must preserve the source-template contract.",
@@ -1144,6 +1239,18 @@ function validatePageAccessibility(report, page, html, ids) {
       page.output,
       `Image ${image.attributes.src || "(missing src)"} needs positive width and height.`,
     );
+    if (/(?:alora|orion|other-rsps|roat-pkz|runex|ferox|near-reality)-logo\.webp$/i.test(
+      String(image.attributes.src || ""),
+    )) {
+      check(
+        report,
+        "assets",
+        Boolean(image.attributes.srcset) && Boolean(image.attributes.sizes),
+        "RESPONSIVE_LOGO_MISSING",
+        page.output,
+        `Optimized server logo ${image.attributes.src} must provide srcset and sizes.`,
+      );
+    }
   }
 
   const labelTargets = new Set(
@@ -1151,6 +1258,16 @@ function validatePageAccessibility(report, page, html, ids) {
       .map(({ attributes }) => attributes.for)
       .filter(Boolean),
   );
+  for (const target of labelTargets) {
+    check(
+      report,
+      "html",
+      ids.has(target),
+      "LABEL_REFERENCE_MISSING",
+      page.output,
+      `label[for] references missing #${target}.`,
+    );
+  }
   for (const tagName of ["input", "select", "textarea"]) {
     for (const control of getTagEntries(html, tagName)) {
       if (tagName === "input" && String(control.attributes.type).toLowerCase() === "hidden") continue;
@@ -1191,18 +1308,36 @@ function validatePageAccessibility(report, page, html, ids) {
 
   for (const tagName of ["a", "button", "input", "select", "textarea", "section", "nav"] ) {
     for (const entry of getTagEntries(html, tagName)) {
-      const labelledBy = String(entry.attributes["aria-labelledby"] || "").trim();
-      for (const id of labelledBy.split(/\s+/).filter(Boolean)) {
-        check(
-          report,
-          "html",
-          ids.has(id),
-          "ARIA_REFERENCE_MISSING",
-          page.output,
-          `aria-labelledby references missing #${id}.`,
-        );
+      for (const attribute of ["aria-labelledby", "aria-controls"]) {
+        const references = String(entry.attributes[attribute] || "").trim();
+        for (const id of references.split(/\s+/).filter(Boolean)) {
+          check(
+            report,
+            "html",
+            ids.has(id),
+            "ARIA_REFERENCE_MISSING",
+            page.output,
+            `${attribute} references missing #${id}.`,
+          );
+        }
       }
     }
+  }
+
+  if (page.indexable) {
+    const skipLinks = classElements(html, "a", "skip-link");
+    const expectedText = UI_COPY[page.language]?.skipToContent;
+    const href = skipLinks[0]?.attributes.href || "";
+    const target = href.startsWith("#") ? decodeURIComponent(href.slice(1)) : "";
+    check(
+      report,
+      "html",
+      skipLinks.length === 1 && Boolean(target) && ids.has(target) &&
+        toPlainText(skipLinks[0].content) === expectedText,
+      "SKIP_LINK_INVALID",
+      page.output,
+      "Every indexable page must have one localized skip link targeting an existing main-content id.",
+    );
   }
 
   for (const tagName of ["a", "form"]) {
@@ -1228,6 +1363,62 @@ function validatePageAccessibility(report, page, html, ids) {
         );
       }
     }
+  }
+}
+
+function validateAnalytics(report, page, html) {
+  if (!page.indexable || !ANALYTICS.scriptUrl) return;
+  const scripts = getTagEntries(html, "script").filter(
+    ({ attributes }) => Object.hasOwn(attributes, "data-rsps-analytics"),
+  );
+  check(
+    report,
+    "content",
+    scripts.length === 1 && scripts[0].attributes.src === ANALYTICS.scriptUrl &&
+      scripts[0].attributes["data-domain"] === ANALYTICS.domain &&
+      Object.hasOwn(scripts[0].attributes, "defer"),
+    "ANALYTICS_SCRIPT_MISSING",
+    page.output,
+    "Every indexable page must load the configured deferred analytics script exactly once.",
+  );
+}
+
+function validateReputation(report, page, html) {
+  if (page.family !== PAGE_FAMILIES.home) return;
+  const expected = formatReputationText(page.language, REPUTATION);
+  const entries = [
+    ...getElementEntries(html, "a"),
+    ...getElementEntries(html, "strong"),
+    ...getElementEntries(html, "small"),
+  ].filter(({ attributes }) => attributes["data-reputation-text"]);
+  for (const [key, value] of Object.entries(expected)) {
+    const matches = entries.filter(
+      ({ attributes, content }) => attributes["data-reputation-text"] === key &&
+        attributes["data-reputation-value"] === value && toPlainText(content) === value,
+    );
+    check(
+      report,
+      "content",
+      matches.length > 0,
+      "REPUTATION_TEXT_DRIFT",
+      page.output,
+      `Reputation text ${key} must be rendered from src/data/site.mjs.`,
+    );
+  }
+  for (const [key, value] of Object.entries(REPUTATION)) {
+    const links = getTagEntries(html, "a").filter(
+      ({ attributes }) => attributes["data-reputation-link"] === key,
+    );
+    check(
+      report,
+      "content",
+      links.length > 0 && links.every(
+        ({ attributes }) => attributes["data-reputation-profile-url"] === value.profileUrl,
+      ),
+      "REPUTATION_LINK_DRIFT",
+      page.output,
+      `Reputation profile ${key} must be rendered from src/data/site.mjs.`,
+    );
   }
 }
 
@@ -1257,6 +1448,16 @@ function validateErrorPageReferences(report, page, html) {
 
 function validatePageRoutes(report, page, html) {
   const expectedCanonical = canonicalFor(page);
+  const homeAliasLinks = scanHtmlTags(html).filter(token => {
+    if (token.closing || token.name !== "a" || !token.attributes.href || "download" in token.attributes) return false;
+    try {
+      const target = new URL(token.attributes.href, expectedCanonical);
+      return target.origin === new URL(expectedCanonical).origin &&
+        ["/index.html", "/es/index.html"].includes(target.pathname);
+    } catch { return false; }
+  });
+  check(report, "routes", homeAliasLinks.length === 0, "NONCANONICAL_HOME_LINK",
+    page.output, "Home navigation must use / or /es/, retaining queries and fragments.");
   const canonicalValues = getCanonicalValues(html);
   const ogUrls = getMetaValues(html, "og:url");
   const htmlTag = getTagEntries(html, "html")[0];
@@ -1561,6 +1762,10 @@ function validatePaymentPolicy(report, page, html) {
   const localized = PAYMENT_POLICY.fragments[page.language];
   if (!localized) return;
   const plain = toPlainText(html);
+  for (const match of html.matchAll(/<p\b[^>]*data-payment-copy="(homepage|faq)\.([a-zA-Z]+)"[^>]*>([\s\S]*?)<\/p>/g)) {
+    check(report, "content", toPlainText(match[3]) === toPlainText(localized[match[1]]?.[match[2]] || ""),
+      "PAYMENT_SUMMARY_DRIFT", page.output, "Page payment summaries must match the shared homepage policy.");
+  }
   if (page.family === PAGE_FAMILIES.home) {
     for (const fragment of collectStrings(localized.homepage)) {
       check(
@@ -1771,6 +1976,7 @@ function validateGuideRelationships(report, generated, schemaByPage) {
       "guides.html",
       "Guide index ItemList must match visible hub-card order.",
     );
+
   }
 
   for (const hub of guideHubs) {
@@ -1907,6 +2113,89 @@ function validateGuideRelationships(report, generated, schemaByPage) {
 }
 
 async function validateSpawnPkFeatures(report, rootDir, buildDir, generated, manifest) {
+  // Exercise the request controller using the actual rendered message, not a
+  // second hand-authored template. Provenance checks below cover bundle inclusion.
+  const requestHtml = generated.get("spawnpk-gold.html") || "";
+  const rateProbe = renderPublishedRates('<strong data-rate-amount>$9</strong> <span>per 1T</span>',
+    { family: "commercial-featured", server: "spawnPk", language: "en" },
+    { spawnPk: { ...SERVERS.spawnPk, publishedRate: { ...SERVERS.spawnPk.publishedRate, usd: 13 } } }, formatUsdAmount);
+  check(report, "features", rateProbe.includes('>$13</strong>'), "SPAWNPK_RATE_CARD_SYNC", "spawnpk-gold.html", "A rate change must update the split rate-card markup from shared data.");
+  const requestTemplate = decodeHtmlEntities(requestHtml.match(/<pre\b[^>]*id="spawnpk-order-message"[^>]*>([\s\S]*?)<\/pre>/i)?.[1] || "");
+  const inputHandlers = {};
+  const field = { value: "10", setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { inputHandlers[name] = fn; } };
+  const preview = { textContent: requestTemplate };
+  const finalPreview = { textContent: "" };
+  const error = { hidden: true };
+  const controls = { hidden: true };
+  const buttons = [{ disabled: false }, { disabled: false }];
+  const presets = [...requestHtml.matchAll(/<button\b[^>]*data-spawnpk-amount="([^"]+)"[^>]*>/g)].map(match => ({
+    attributes: parseAttributes(match[0]), handlers: {},
+    setAttribute(name, value) { this.attributes[name] = value; },
+    getAttribute(name) { return this.attributes[name]; },
+    addEventListener(name, fn) { this.handlers[name] = fn; },
+  }));
+  const previewPanel = { hidden: false };
+  const previewToggle = { hidden: true, handlers: {}, setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.handlers[name] = fn; } };
+  const nodes = { "spawnpk-amount": field, "spawnpk-order-message": preview, "spawnpk-final-message": finalPreview, "spawnpk-amount-error": error, "spawnpk-preview-toggle": previewToggle, "spawnpk-message-panel": previewPanel };
+  try {
+    const runtime = await fs.readFile(path.join(rootDir, "spawnpk-gold.js"), "utf8");
+    new VmScript(runtime).runInNewContext({ document: {
+      querySelector: () => controls, getElementById: (id) => nodes[id],
+      querySelectorAll: (selector) => selector === "[data-spawnpk-amount]" ? presets : buttons,
+    } }, { timeout: 1000 });
+    for (const [value, expected] of [["25", "25"], ["2,5", "25"], ["0.0001", "25"], ["1000", "1000"], ["1000.0000", "25"], ["1000.0001", "25"], ["1001", "25"], ["1000000", "25"], ["", null], ["0", null], ["-2", "25"], ["1e3", "25"], ["<script>", "25"], ["0005", "5"], ["10", "10"]]) {
+      field.value = "25";
+      inputHandlers.input();
+      field.value = value;
+      inputHandlers.input();
+      const valid = expected !== null;
+      check(report, "features", !controls.hidden && error.hidden === valid &&
+        /^[0-9]{0,4}$/.test(field.value) && Number(field.value) <= 1000 &&
+        finalPreview.textContent === preview.textContent &&
+        buttons.every(button => button.disabled === !valid) &&
+        (valid ? preview.textContent === requestTemplate.replace("Amount needed: 10T", `Amount needed: ${expected}T`) && preview.textContent.includes(`Amount needed: ${expected}T`) : !preview.textContent.includes("Amount needed:")),
+      "SPAWNPK_REQUEST_AMOUNT", "spawnpk-gold.html", `Request amount ${JSON.stringify(value)} must produce the correct copy state without a stale quantity.`);
+    }
+    for (const [current, start, end, text, blocked] of [
+      ["10", 2, 2, "a", true], ["10", 2, 2, ".", true], ["10", 2, 2, "e", true],
+      ["1000", 4, 4, "1", true], ["100", 3, 3, "1", true], ["100", 3, 3, "0", false],
+      ["1000", 0, 4, "50", false], ["25", 0, 2, "1001", true],
+      ["25", 0, 2, "10000", true], ["25", 0, 2, "2.5", true], ["25", 0, 2, "-2", true],
+      ["25", 0, 2, "1e3", true], ["25", 0, 2, " 50 ", true], ["25", 0, 2, "1000", false],
+    ]) {
+      field.value = current;
+      field.selectionStart = start;
+      field.selectionEnd = end;
+      for (const eventName of ["beforeinput", "paste"]) {
+        let prevented = false;
+        inputHandlers[eventName]({data:text, clipboardData:{getData:()=>text}, preventDefault(){prevented=true;}});
+        check(report, "features", prevented === blocked && field.value === current,
+          "SPAWNPK_NUMERIC_INPUT_GUARD", "spawnpk-gold.html", `${eventName} must ${blocked ? "reject" : "allow"} ${JSON.stringify(text)} at the selected range without changing its meaning.`);
+      }
+    }
+    check(report, "features", presets.map(button => button.getAttribute("data-spawnpk-amount")).join(",") === "5,10,25,50", "SPAWNPK_PRESET_AMOUNTS", "spawnpk-gold.html", "The storefront must offer its four gold-amount shortcuts.");
+    const discordLinks = getTagEntries(requestHtml, "a").filter(({ attributes }) => String(attributes.href || "").startsWith("https://discord.com/users/"));
+    check(report, "features", discordLinks.length >= 3 && discordLinks.every(({ attributes }) => !attributes.disabled && attributes["aria-disabled"] !== "true"), "SPAWNPK_DIRECT_CONTACT", "spawnpk-gold.html", "Direct Discord contact must remain a native link independent of the amount form.");
+    check(report, "features", ["spk-safety", "spk-source", "spk-payments"].every(id => requestHtml.includes(`id="${id}"`)) && !/href="#spk-safety">Gold Source/.test(requestHtml), "SPAWNPK_INFORMATION_TARGETS", "spawnpk-gold.html", "Payment options, seller identity and gold source must have distinct destinations.");
+    for (const button of presets) {
+      button.handlers.click();
+      check(report, "features", field.value === button.getAttribute("data-spawnpk-amount") &&
+        preview.textContent.includes(`Amount needed: ${field.value}T`) &&
+        presets.filter(preset => preset.getAttribute("aria-pressed") === "true").length === 1 &&
+        button.getAttribute("aria-pressed") === "true",
+      "SPAWNPK_PRESET_SELECTION", "spawnpk-gold.html", "A gold-amount shortcut must update both the copy message and the accessible selected state.");
+    }
+    field.value = "26";
+    inputHandlers.input();
+    check(report, "features", presets.every(button => button.getAttribute("aria-pressed") === "false"), "SPAWNPK_CUSTOM_AMOUNT", "spawnpk-gold.html", "A custom amount must clear the preset selection.");
+    check(report, "features", previewPanel.hidden && !previewToggle.hidden && previewToggle["aria-expanded"] === "false", "SPAWNPK_PREVIEW_INITIAL", "spawnpk-gold.html", "The enhanced preview starts collapsed without removing the copyable message.");
+    previewToggle.handlers.click();
+    check(report, "features", !previewPanel.hidden && previewToggle["aria-expanded"] === "true", "SPAWNPK_PREVIEW_OPEN", "spawnpk-gold.html", "The message preview must expand accessibly.");
+    previewToggle.handlers.click();
+    check(report, "features", previewPanel.hidden && previewToggle["aria-expanded"] === "false", "SPAWNPK_PREVIEW_CLOSE", "spawnpk-gold.html", "The message preview must collapse accessibly.");
+  } catch (error) {
+    addIssue(report, "features", "SPAWNPK_REQUEST_RUNTIME", "spawnpk-gold.html", error.message);
+  }
   for (const [file, contract] of Object.entries(SPAWNPK_FEATURES)) {
     const html = generated.get(file) || "";
     for (const hook of contract.hooks) {
@@ -1935,7 +2224,7 @@ async function validateSpawnPkFeatures(report, rootDir, buildDir, generated, man
       "features",
       record?.js?.sources?.includes(contract.script) &&
         bundle.includes(
-          `/* Page runtime: ${contract.script} */\n${runtime.replace(/\r\n?/g, "\n").trim()}`,
+          `/* Page runtime: ${contract.script} */\n${minifyJavaScript(runtime)}`,
         ),
       "SPAWNPK_RUNTIME_PROVENANCE",
       file,
@@ -2273,8 +2562,8 @@ async function validateCssFeatureSlicing(report, rootDir) {
     "assets",
     enabled.includes(sentinel) &&
       !disabled.includes(sentinel) &&
-      disabled.includes(".probe-card {") &&
-      disabled.includes(".probe-price {"),
+      disabled.includes(".probe-card{") &&
+      disabled.includes(".probe-price{"),
     "CSS_BLOCK_TREE_SHAKING_UNSAFE",
     "tools/lib/bundles.mjs",
     `Disabling CSS feature "${target.key}" must remove its compound selector while preserving identical class tokens outside the feature range.`,
@@ -2585,7 +2874,7 @@ async function validateManifestAndBudgets(
             "assets",
             Boolean(sourceText) &&
               jsText.includes(
-                `/* Page runtime: ${sourceFile} */\n${sourceText.replace(/\r\n?/g, "\n").trim()}`,
+                `/* Page runtime: ${sourceFile} */\n${minifyJavaScript(sourceText)}`,
               ),
             "JS_SOURCE_CONTENT_MISSING",
             page.output,
@@ -2776,6 +3065,8 @@ async function validateGeneratedSite(report, rootDir, buildResult) {
     if (!html || !source) continue;
     validateHeadingAndHookPreservation(report, page, source, html);
     validatePageAccessibility(report, page, html, idsByFile.get(page.output));
+    validateAnalytics(report, page, html);
+    validateReputation(report, page, html);
     validatePageRoutes(report, page, html);
     validateErrorPageReferences(report, page, html);
     const schema = validateJsonLdAndFaq(report, page, html);

@@ -3,11 +3,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  ANALYTICS,
   PAYMENT_POLICY,
+  REPUTATION,
   SERVERS,
   DISCORD,
+  UI_COPY,
   formatCommercialPaymentFaqAnswer,
   formatCommercialPaymentFaqQuestion,
+  formatReputationText,
   formatSupportedServersFaqAnswer,
   formatUsdAmount,
   site,
@@ -18,10 +22,13 @@ import { createPageCss, createPageJs } from "./lib/bundles.mjs";
 import {
   extractInlineHeadStyles,
   extractInlineRuntimeScripts,
+  renderAnalytics,
   renderCanonicalAndLanguages,
   renderDiscordIdentity,
   renderPaymentPolicy,
   renderPublishedRates,
+  renderReputation,
+  renderSkipLink,
   renderSupportedServersFaq,
   rewriteGlobalScript,
   rewriteGlobalStylesheet,
@@ -70,16 +77,64 @@ const OPTIMIZED_IMAGES = Object.freeze({
     path: "assets/alora-logo.webp",
     width: 1082,
     height: 281,
+    variants: [
+      { path: "assets/alora-logo-320.webp", width: 320 },
+      { path: "assets/alora-logo-640.webp", width: 640 },
+    ],
+    sizes: "(max-width: 600px) 44vw, 280px",
   },
   "assets/orion-logo.png": {
     path: "assets/orion-logo.webp",
     width: 800,
     height: 375,
+    variants: [
+      { path: "assets/orion-logo-320.webp", width: 320 },
+      { path: "assets/orion-logo-640.webp", width: 640 },
+    ],
+    sizes: "(max-width: 600px) 44vw, 280px",
   },
   "assets/other-rsps-logo.png": {
     path: "assets/other-rsps-logo.webp",
     width: 850,
     height: 185,
+    variants: [
+      { path: "assets/other-rsps-logo-320.webp", width: 320 },
+      { path: "assets/other-rsps-logo-640.webp", width: 640 },
+    ],
+    sizes: "(max-width: 600px) 44vw, 280px",
+  },
+  "assets/roat-pkz-logo.png": {
+    path: "assets/roat-pkz-logo.webp",
+    width: 497,
+    height: 300,
+    variants: [{ path: "assets/roat-pkz-logo-240.webp", width: 240 }],
+    sizes: "(max-width: 600px) 44vw, 280px",
+  },
+  "assets/runex-logo.png": {
+    path: "assets/runex-logo.webp",
+    width: 576,
+    height: 278,
+    variants: [
+      { path: "assets/runex-logo-240.webp", width: 240 },
+    ],
+    sizes: "(max-width: 600px) 44vw, 280px",
+  },
+  "assets/ferox-logo.png": {
+    path: "assets/ferox-logo.webp",
+    width: 448,
+    height: 284,
+    variants: [{ path: "assets/ferox-logo-240.webp", width: 240 }],
+    sizes: "(max-width: 600px) 44vw, 280px",
+  },
+  "assets/near-reality-logo.png": {
+    path: "assets/near-reality-logo.webp",
+    width: 695,
+    height: 259,
+    variants: [
+      { path: "assets/near-reality-logo-240.webp", width: 240 },
+      { path: "assets/near-reality-logo-480.webp", width: 480 },
+    ],
+    sizes: "(max-width: 600px) 44vw, 280px",
   },
   "assets/payment-icons/rs3-logo.png": {
     path: "assets/payment-icons/rs3-logo.webp",
@@ -99,6 +154,10 @@ const commercialOutputByServer = Object.freeze(
       )
       .map((page) => [page.server, page.output]),
   ),
+);
+
+const reputationTextByLanguage = Object.freeze(
+  Object.fromEntries(["en", "es"].map((language) => [language, formatReputationText(language)])),
 );
 
 export function renderCompatibilityScript(source, discord) {
@@ -360,6 +419,11 @@ export async function buildSite({
 
   for (const page of pages) {
     let html = (await fs.readFile(path.join(root, page.source), "utf8")).replace(/\r\n?/g, "\n");
+    // Reputation must be materialized while its progressive-enhancement script
+    // is still present. Extracted runtime is deliberately opaque to renderers.
+    html = renderReputation(html, page, REPUTATION, reputationTextByLanguage);
+    html = renderAnalytics(html, ANALYTICS);
+    html = renderSkipLink(html, page, UI_COPY);
     const pageStyles = await extractPageStylesheets(html, page, root);
     html = pageStyles.html;
     const inlineStyles = extractInlineHeadStyles(html);

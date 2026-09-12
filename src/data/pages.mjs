@@ -98,6 +98,7 @@ export const pages = deepFreeze([
   }),
   page("spawnpk-gold.html", {
     pathname: "/spawnpk-gold.html",
+    lastModified: "2026-09-12",
     translationKey: "spawnpk-gold",
     family: PAGE_FAMILIES.commercialFeatured,
     server: "spawnPk",

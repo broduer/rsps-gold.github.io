@@ -88,7 +88,7 @@ function findTagEnd(source, startOffset) {
   return source.length;
 }
 
-function scanHtmlTags(source) {
+export function scanHtmlTags(source) {
   const tokens = [];
   let cursor = 0;
 

@@ -8,6 +8,56 @@ export const SITE_ORIGIN = "https://rsps-gold.com";
 export const SITE_NAME = "RSPS Gold Hub";
 export const ACCEPTS_OTHER_SERVERS = true;
 
+// Plausible now issues a site-specific script URL after a site is registered.
+// Keep the integration dormant until that URL is supplied; an invented URL
+// would look installed while silently collecting no measurements.
+export const ANALYTICS = deepFreeze({
+  domain: new URL(SITE_ORIGIN).hostname,
+  scriptUrl: "",
+});
+
+export const UI_COPY = deepFreeze({
+  en: { skipToContent: "Skip to content" },
+  es: { skipToContent: "Saltar al contenido" },
+});
+
+export const REPUTATION = deepFreeze({
+  eldorado: {
+    profileUrl: "https://www.eldorado.gg/users/A6D9_Shop/reviews",
+    positivePercent: "99.6%",
+    reviewCount: "768+",
+  },
+  sythe: {
+    profileUrl: "https://www.sythe.org/threads/a6d9-vouches/",
+    vouchCount: "427+",
+  },
+});
+
+export function formatReputationText(language = "en", reputation = REPUTATION) {
+  if (language === "es") {
+    return {
+      "eldorado-positive-label": `${reputation.eldorado.positivePercent} positivas`,
+      "eldorado-review-label": `${reputation.eldorado.reviewCount} Reseñas de Eldorado`,
+      "sythe-vouch-label": `${reputation.sythe.vouchCount} referencias de Sythe`,
+      "eldorado-positive-stat": `${reputation.eldorado.positivePercent} positivas`,
+      "eldorado-review-stat": `${reputation.eldorado.reviewCount} reseñas`,
+      "sythe-vouch-stat": `${reputation.sythe.vouchCount} referencias`,
+      "eldorado-all-reviews-link": `Leer las ${reputation.eldorado.reviewCount} reseñas en Eldorado.gg →`,
+      "sythe-all-vouches-link": `Ver ${reputation.sythe.vouchCount} referencias comerciales en Sythe.org →`,
+    };
+  }
+  return {
+    "eldorado-positive-label": `${reputation.eldorado.positivePercent} positive`,
+    "eldorado-review-label": `${reputation.eldorado.reviewCount} Eldorado reviews`,
+    "sythe-vouch-label": `${reputation.sythe.vouchCount} Sythe vouches`,
+    "eldorado-positive-stat": `${reputation.eldorado.positivePercent} Positive`,
+    "eldorado-review-stat": `${reputation.eldorado.reviewCount} Reviews`,
+    "sythe-vouch-stat": `${reputation.sythe.vouchCount} Vouches`,
+    "eldorado-all-reviews-link": `Read all ${reputation.eldorado.reviewCount} reviews on Eldorado.gg →`,
+    "sythe-all-vouches-link": `View ${reputation.sythe.vouchCount} trade vouches on Sythe.org →`,
+  };
+}
+
 export function formatPaymentProcessorQuestion(origin = SITE_ORIGIN) {
   return `Does ${new URL(origin).hostname} process payments?`;
 }
@@ -258,6 +308,9 @@ export const PAYMENT_POLICY = deepFreeze({
 export const site = deepFreeze({
   origin: SITE_ORIGIN,
   name: SITE_NAME,
+  analytics: ANALYTICS,
+  ui: UI_COPY,
+  reputation: REPUTATION,
   discord: DISCORD,
   supportedServerOrder: SERVER_ORDER,
   acceptsOtherServers: ACCEPTS_OTHER_SERVERS,

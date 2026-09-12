@@ -2,6 +2,7 @@ import {
   extractVisibleFaqs,
   parseAttributes,
   parseJsonLdScripts,
+  scanHtmlTags,
 } from "../../scripts/lib/html.mjs";
 
 function escapeAttribute(value) {
@@ -9,6 +10,17 @@ function escapeAttribute(value) {
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;");
+}
+
+function escapeHtmlText(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function typeIncludes(node, expected) {
@@ -47,8 +59,10 @@ export function extractInlineHeadStyles(html) {
 
   const styles = [];
   const rewrittenHead = headMatch[0].replace(
-    /\s*<style\b([^>]*)>([\s\S]*?)<\/style>\s*/gi,
+    /<noscript\b[^>]*>[\s\S]*?<\/noscript\s*>|\s*<style\b([^>]*)>([\s\S]*?)<\/style>\s*/gi,
     (match, attributes, css) => {
+      // A no-JavaScript fallback must not become unconditional bundle CSS.
+      if (css === undefined) return match;
       const attrs = parseAttributes(`<style${attributes}>`);
       if (attrs.media) {
         styles.push(`@media ${attrs.media} {\n${css.trim()}\n}`);
@@ -85,6 +99,70 @@ export function extractInlineRuntimeScripts(html) {
   return { html: rewritten, js: scripts.filter(Boolean).join("\n\n") };
 }
 
+export function renderAnalytics(html, analytics) {
+  if (!analytics?.scriptUrl || !analytics?.domain) return html;
+  const withoutExisting = html.replace(
+    /\s*<script\b(?=[^>]*\bdata-rsps-analytics\b)[^>]*><\/script>\s*/gi,
+    "\n",
+  );
+  const tag = `<script defer data-rsps-analytics data-domain="${escapeAttribute(analytics.domain)}" src="${escapeAttribute(analytics.scriptUrl)}"></script>`;
+  if (!/<\/head>/i.test(withoutExisting)) throw new Error("Page is missing a closing head element");
+  return withoutExisting.replace(/<\/head>/i, `  ${tag}\n  </head>`);
+}
+
+export function renderSkipLink(html, page, uiCopy) {
+  const text = uiCopy?.[page.language]?.skipToContent;
+  if (!text) throw new Error(`${page.source}: missing localized skip-link copy`);
+
+  let rendered = html.replace(
+    /\s*<a\b(?=[^>]*\bclass=["'][^"']*\bskip-link\b[^"']*["'])[^>]*>[\s\S]*?<\/a>\s*/gi,
+    "\n",
+  );
+  const mainTag = rendered.match(/<main\b[^>]*>/i)?.[0];
+  if (!mainTag) throw new Error(`${page.source}: missing main element for skip-link target`);
+  const mainId = parseAttributes(mainTag).id || "main";
+  if (!parseAttributes(mainTag).id) {
+    rendered = rendered.replace(mainTag, setTagAttribute(mainTag, "id", mainId));
+  }
+
+  const link = `<a class="skip-link" href="#${escapeAttribute(mainId)}">${escapeHtmlText(text)}</a>`;
+  if (!/<body\b[^>]*>/i.test(rendered)) throw new Error(`${page.source}: missing body element`);
+  return rendered.replace(/<body\b[^>]*>/i, (tag) => `${tag}\n    ${link}`);
+}
+
+function replaceReputationText(html, key, value) {
+  const escapedKey = escapeRegExp(key);
+  const pattern = new RegExp(
+    `(<([a-z][\\w:-]*)\\b(?=[^>]*\\bdata-reputation-text=["']${escapedKey}["'])[^>]*>)[\\s\\S]*?(<\\/\\2>)`,
+    "gi",
+  );
+  let matches = 0;
+  const rendered = html.replace(pattern, (match, opening, tagName, closing) => {
+    matches += 1;
+    const configured = setTagAttribute(opening, "data-reputation-value", value);
+    return `${configured}${escapeHtmlText(value)}${closing}`;
+  });
+  return { html: rendered, matches };
+}
+
+export function renderReputation(html, page, reputation, textByLanguage) {
+  const text = textByLanguage?.[page.language];
+  if (!text) return html;
+  let rendered = html;
+
+  for (const [key, value] of Object.entries(text)) {
+    rendered = replaceReputationText(rendered, key, value).html;
+  }
+  rendered = rendered.replace(/<a\b[^>]*\bdata-reputation-link=["'][^"']+["'][^>]*>/gi, (tag) => {
+    const key = parseAttributes(tag)["data-reputation-link"];
+    const profileUrl = reputation?.[key]?.profileUrl;
+    return profileUrl
+      ? setTagAttribute(tag, "data-reputation-profile-url", profileUrl)
+      : tag;
+  });
+  return rendered;
+}
+
 export function renderDiscordIdentity(html, discord) {
   const displayName = discord.displayName || discord.username.toUpperCase();
   let rendered = html.replace(
@@ -94,7 +172,7 @@ export function renderDiscordIdentity(html, discord) {
 
   const protectedValues = [];
   rendered = rendered.replace(
-    /\b(?:src|srcset)\s*=\s*(["'])([\s\S]*?)\1/gi,
+    /\b(?:src|srcset|data-reputation-profile-url)\s*=\s*(["'])([\s\S]*?)\1/gi,
     (match) => {
       const token = `__RSPS_PROTECTED_ASSET_${protectedValues.length}__`;
       protectedValues.push(match);
@@ -125,6 +203,31 @@ export function renderDiscordIdentity(html, discord) {
   return rendered.replace(/__RSPS_PROTECTED_ASSET_(\d+)__/g, (match, index) =>
     protectedValues[Number(index)] ?? match,
   );
+}
+
+// Home aliases remain accessible, but navigation must support the canonical
+// directory routes. Never rewrite strings inside scripts, styles or comments.
+export function renderCanonicalHomeLinks(html, canonical) {
+  const base = new URL(canonical);
+  let rendered = html;
+  for (const token of scanHtmlTags(html).reverse()) {
+    if (token.closing || token.name !== "a") continue;
+    const href = token.attributes.href;
+    if (!href || /^[#?]/.test(href) || "download" in token.attributes) continue;
+    let target;
+    try { target = new URL(href, base); } catch { continue; }
+    if (target.origin !== base.origin || target.username || target.password) continue;
+    const pathname = target.pathname === "/index.html" ? "/"
+      : target.pathname === "/es/index.html" ? "/es/" : null;
+    if (!pathname) continue;
+    const suffix = href.match(/[?#][\s\S]*$/)?.[0] || "";
+    const tag = token.raw.replace(
+      /(\shref\s*=\s*)(?:"[^"]*"|'[^']*'|[^\s>]+)/i,
+      () => ` href="${escapeAttribute(pathname + suffix)}"`,
+    );
+    rendered = rendered.slice(0, token.startOffset) + tag + rendered.slice(token.endOffset);
+  }
+  return rendered;
 }
 
 export function renderCanonicalAndLanguages(html, page, context) {
@@ -186,6 +289,7 @@ export function renderCanonicalAndLanguages(html, page, context) {
     rendered = rendered.split(previousOrigin).join(canonicalOrigin);
   }
 
+  rendered = renderCanonicalHomeLinks(rendered, canonical);
   return { html: rendered, canonical, previousCanonical };
 }
 
@@ -226,6 +330,14 @@ export function renderPaymentPolicy(html, page, paymentPolicy, helpers = {}) {
   const localized = paymentPolicy.fragments[page.language];
   if (!localized) return html;
   let rendered = html;
+
+  // Authored payment summaries reuse the same policy as the homepage.
+  rendered = rendered.replace(/(<p\b[^>]*data-payment-copy="(homepage|faq)\.([a-zA-Z]+)"[^>]*>)[\s\S]*?(<\/p>)/g,
+    (match, opening, group, key, closing) => {
+      const value = localized[group]?.[key];
+      if (typeof value !== "string") throw new Error(`Unknown payment copy: ${group}.${key}`);
+      return opening + escapeHtmlText(value) + closing;
+    });
 
   if (page.family === "home") {
     const policy = localized.homepage;
@@ -318,6 +430,8 @@ export function renderSupportedServersFaq(html, page, answer) {
 
 function applyRateToText(value, server, formatUsdAmount, language = "en") {
   if (!server.publishedRate || !server.currency.units) return value;
+  value = value.replace(/(<strong\b[^>]*\bdata-rate-amount(?:="[^"]*")?[^>]*>)[\s\S]*?(<\/strong>)/g,
+    (_, opening, closing) => opening + "$" + formatUsdAmount(server.publishedRate.usd, { fractionDigits: server.publishedRate.fractionDigits }) + closing);
   const currentUnits = server.currency.units;
   const templateUnits = server.currency.templateUnits || currentUnits;
   const unitStyles = ["short", "long"].filter(
@@ -477,10 +591,23 @@ export function rewriteOptimizedImageSources(html, replacements) {
       return attrs.src?.endsWith(optimized);
     });
     if (!definition || typeof definition === "string") return tag;
-    return setTagAttribute(
+    let rewritten = setTagAttribute(
       setTagAttribute(tag, "width", definition.width),
       "height",
       definition.height,
     );
+    if (definition.variants?.length) {
+      const prefix = String(attrs.src).slice(0, -definition.path.length);
+      const candidates = [
+        ...definition.variants,
+        { path: definition.path, width: definition.width },
+      ].sort((left, right) => left.width - right.width);
+      const srcset = candidates
+        .map(({ path: imagePath, width }) => `${prefix}${imagePath} ${width}w`)
+        .join(", ");
+      rewritten = setTagAttribute(rewritten, "srcset", srcset);
+      rewritten = setTagAttribute(rewritten, "sizes", definition.sizes || "100vw");
+    }
+    return rewritten;
   });
 }

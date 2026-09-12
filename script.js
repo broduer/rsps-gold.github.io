@@ -472,6 +472,16 @@
     );
   }
 
+  window.addEventListener("rspshub:interaction", function (event) {
+    if (typeof window.plausible !== "function" || !event.detail || !event.detail.action) return;
+    window.plausible(event.detail.action, {
+      props: {
+        page: event.detail.page || window.location.pathname,
+        label: event.detail.label || "",
+      },
+    });
+  });
+
   function showCopied(message) {
     if (!toast) return;
     toast.textContent = message || copyMessages.copied;
@@ -483,6 +493,7 @@
   }
 
   function fallbackCopy(text) {
+    var previousFocus = document.activeElement;
     var textArea = document.createElement("textarea");
     var copied = false;
     textArea.value = text;
@@ -500,6 +511,7 @@
       copied = false;
     }
     document.body.removeChild(textArea);
+    if (previousFocus && previousFocus.focus) previousFocus.focus({ preventScroll: true });
     return copied;
   }
 
@@ -534,11 +546,14 @@
     link.addEventListener("click", function (event) {
       var targetId = link.getAttribute("href");
       if (!targetId || targetId === "#") return;
+      if (targetId.charAt(0) !== "#") return;
 
       var target = document.querySelector(targetId);
       if (!target) return;
 
       event.preventDefault();
+      if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+      target.focus({ preventScroll: true });
       var reducedMotion =
         window.matchMedia &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -566,6 +581,8 @@
 
       copyText(text).then(function (copied) {
         showCopied(copied ? successMessage : copyMessages.failed);
+        var copyAction = button.getAttribute("data-action");
+        if (copyAction) reportInteraction(copyAction + (copied ? "-success" : "-failed"), button);
         if (!copied) return;
 
         button.textContent = successMessage;
@@ -577,10 +594,10 @@
   });
 
   document
-    .querySelectorAll("[data-action]:not(.copy-btn)")
+    .querySelectorAll("[data-action]:not(.copy-btn), a[href^='https://discord.com/users/']:not(.copy-btn)")
     .forEach(function (element) {
       element.addEventListener("click", function () {
-        reportInteraction(element.getAttribute("data-action"), element);
+        reportInteraction(element.getAttribute("data-action") || "discord-profile", element);
       });
     });
 
@@ -1744,200 +1761,6 @@
     });
   }
 
-  function initServerProfitCalculators() {
-    var forms = document.querySelectorAll("[data-server-profit-calculator]");
-    if (!forms.length) return;
-
-    var multipliers = { k: 1000, m: 1000000, b: 1000000000 };
-    var fullFormatter = new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 0,
-    });
-    var compactFormatter = new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 2,
-    });
-
-    function parseAmount(input, mustBePositive) {
-      var rawValue = input.value.trim().toLowerCase();
-      if (rawValue === "") return { empty: true, valid: true, value: null };
-      var match = rawValue.match(/^(?:\d+(?:\.\d*)?|\.\d+)([kmb])?$/);
-      if (!match) return { empty: false, valid: false, value: null };
-
-      var suffix = match[1] || "";
-      var numericValue = Number(suffix ? rawValue.slice(0, -1) : rawValue);
-      var value = numericValue * (multipliers[suffix] || 1);
-      var valid =
-        Number.isFinite(value) &&
-        value >= 0 &&
-        (!mustBePositive || value > 0) &&
-        value <= Number.MAX_SAFE_INTEGER;
-      return { empty: false, valid: valid, value: valid ? value : null };
-    }
-
-    function formatAmount(value, unit) {
-      var absoluteValue = Math.abs(value);
-      var sign = value < 0 ? "-" : "";
-      var scale =
-        absoluteValue >= 1000000000
-          ? { value: 1000000000, suffix: "B" }
-          : absoluteValue >= 1000000
-            ? { value: 1000000, suffix: "M" }
-            : absoluteValue >= 1000
-              ? { value: 1000, suffix: "K" }
-              : null;
-      if (!scale) {
-        return sign + fullFormatter.format(Math.round(absoluteValue)) + " " + unit;
-      }
-      return (
-        sign +
-        compactFormatter.format(absoluteValue / scale.value) +
-        scale.suffix +
-        " " +
-        unit
-      );
-    }
-
-    forms.forEach(function (form) {
-      var minutesInput = form.querySelector('[data-profit-field="minutes"]');
-      var grossInput = form.querySelector('[data-profit-field="gross"]');
-      var suppliesInput = form.querySelector('[data-profit-field="supplies"]');
-      var feesInput = form.querySelector('[data-profit-field="fees"]');
-      var lossesInput = form.querySelector('[data-profit-field="losses"]');
-      var result = form.parentElement.querySelector("[data-profit-result]");
-      var state = result && result.querySelector("[data-profit-state]");
-      var netOutput = result && result.querySelector("[data-profit-net]");
-      var hourlyOutput = result && result.querySelector("[data-profit-hourly]");
-      var costsOutput = result && result.querySelector("[data-profit-costs]");
-      var summary = result && result.querySelector("[data-profit-summary]");
-      var unit = form.getAttribute("data-unit") || "units";
-      var inputs = [
-        minutesInput,
-        grossInput,
-        suppliesInput,
-        feesInput,
-        lossesInput,
-      ];
-      if (
-        inputs.some(function (input) {
-          return !input;
-        }) ||
-        !result ||
-        !state ||
-        !netOutput ||
-        !hourlyOutput ||
-        !costsOutput ||
-        !summary
-      ) {
-        return;
-      }
-
-      function clearOutputs() {
-        [netOutput, hourlyOutput, costsOutput].forEach(function (output) {
-          output.textContent = "—";
-        });
-      }
-
-      function setState(name, label, message) {
-        result.classList.remove("is-positive", "is-neutral", "is-negative");
-        result.classList.add("is-" + name);
-        state.textContent = label;
-        summary.textContent = message;
-      }
-
-      function update() {
-        var values = [
-          parseAmount(minutesInput, true),
-          parseAmount(grossInput, false),
-          parseAmount(suppliesInput, false),
-          parseAmount(feesInput, false),
-          parseAmount(lossesInput, false),
-        ];
-        inputs.forEach(function (input, index) {
-          input.setAttribute("aria-invalid", String(!values[index].valid));
-        });
-
-        if (
-          values.some(function (value) {
-            return !value.valid;
-          })
-        ) {
-          clearOutputs();
-          setState(
-            "negative",
-            "CHECK THE VALUES",
-            "Use non-negative numbers. Currency fields accept an optional K, M or B suffix, and session length must be greater than zero.",
-          );
-          return;
-        }
-
-        if (
-          values.some(function (value) {
-            return value.empty;
-          })
-        ) {
-          clearOutputs();
-          setState(
-            "neutral",
-            "READY TO CALCULATE",
-            "Enter one completed session to calculate its net result and hourly rate.",
-          );
-          return;
-        }
-
-        var totalCosts = values[2].value + values[3].value + values[4].value;
-        var net = values[1].value - totalCosts;
-        var hourly = net * (60 / values[0].value);
-        if (
-          !Number.isFinite(totalCosts) ||
-          !Number.isFinite(net) ||
-          !Number.isFinite(hourly)
-        ) {
-          clearOutputs();
-          setState(
-            "negative",
-            "CHECK THE VALUES",
-            "The result is too large. Reduce the entered values and try again.",
-          );
-          return;
-        }
-
-        costsOutput.textContent = formatAmount(totalCosts, unit);
-        netOutput.textContent = formatAmount(net, unit);
-        hourlyOutput.textContent = formatAmount(hourly, unit);
-        if (net > 0) {
-          setState(
-            "positive",
-            "POSITIVE SESSION",
-            "This session finished above the entered costs. Track several sessions before treating the hourly rate as typical.",
-          );
-        } else if (net < 0) {
-          setState(
-            "negative",
-            "NEGATIVE SESSION",
-            "The entered costs exceeded the gross result. Review risk, fees and learning costs before repeating the method.",
-          );
-        } else {
-          setState(
-            "neutral",
-            "BREAK EVEN",
-            "Gross value and total costs are equal for this session.",
-          );
-        }
-      }
-
-      inputs.forEach(function (input) {
-        input.addEventListener("input", update);
-      });
-      form.addEventListener("submit", function (event) {
-        event.preventDefault();
-        update();
-      });
-      form.addEventListener("reset", function () {
-        window.requestAnimationFrame(update);
-      });
-      update();
-    });
-  }
-
   function initRoatCommandDirectory() {
     var directory = document.querySelector("[data-roat-command-directory]");
     var controls = document.querySelector("[data-roat-command-controls]");
@@ -2467,7 +2290,6 @@
     initImpactHunterPlanner();
     initImpactThievingPlanner();
     initCompactHeaderMenu();
-    initServerProfitCalculators();
     initRoatCommandDirectory();
     initRoatMoneyMakingGuide();
     initRoatDonatorRankFinder();

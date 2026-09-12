@@ -52,6 +52,90 @@ export const COMMERCIAL_CSS_RANGE = Object.freeze({
   end: "/* Guide hub and long-form article layout */",
 });
 
+function isPreservedBundleComment(comment) {
+  return /^\/\*!/.test(comment) ||
+    /^\/\* Page (?:stylesheet|runtime): /.test(comment);
+}
+
+export function minifyCss(source) {
+  const input = String(source).replace(/\r\n?/g, "\n");
+  let output = "";
+  let quote = "";
+  let escaped = false;
+  let pendingSpace = false;
+
+  for (let index = 0; index < input.length; index += 1) {
+    const character = input[index];
+    const next = input[index + 1];
+    if (quote) {
+      output += character;
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === quote) quote = "";
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      if (pendingSpace && output && !/[{}:;,>~(]$/.test(output)) output += " ";
+      pendingSpace = false;
+      quote = character;
+      output += character;
+      continue;
+    }
+    if (character === "/" && next === "*") {
+      const end = input.indexOf("*/", index + 2);
+      if (end < 0) throw new Error("Unterminated CSS comment");
+      const comment = input.slice(index, end + 2);
+      if (isPreservedBundleComment(comment)) {
+        output = output.replace(/[ \t]+$/g, "");
+        if (output && !output.endsWith("\n")) output += "\n";
+        output += `${comment}\n`;
+        pendingSpace = false;
+      } else {
+        pendingSpace = true;
+      }
+      index = end + 1;
+      continue;
+    }
+    if (/\s/.test(character)) {
+      pendingSpace = true;
+      continue;
+    }
+    if (pendingSpace && output &&
+        !/[{}:;,>~(\n]$/.test(output) && !/[{}:;,>~)]/.test(character)) {
+      output += " ";
+    }
+    pendingSpace = false;
+    output += character;
+  }
+  if (quote) throw new Error("Unterminated CSS string");
+  return output.trim();
+}
+
+// JavaScript whitespace is syntactic around ASI, regex literals and template
+// expressions. Removing only indentation outside strings/templates is less
+// aggressive than a parser-backed minifier, but is deterministic and safe.
+export function minifyJavaScript(source) {
+  const input = String(source).replace(/\r\n?/g, "\n");
+  let output = "";
+  let template = false;
+  let escaped = false;
+  let lineStart = true;
+  for (const character of input) {
+    if (!template && lineStart && (character === " " || character === "\t")) continue;
+    output += character;
+    if (template) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === "`") template = false;
+    } else if (character === "`") {
+      template = true;
+    }
+    lineStart = character === "\n";
+  }
+  if (template) throw new Error("Unterminated JavaScript template literal");
+  return output.trim();
+}
+
 const JS_FEATURES = {
   "impact-rank-calculator": ["initImpactRankCalculator"],
   "impact-profit-calculator": ["initImpactProfitCalculator"],
@@ -72,7 +156,6 @@ const FEATURE_FUNCTIONS = [
   "initImpactSlayerDirectory",
   "initImpactHunterPlanner",
   "initImpactThievingPlanner",
-  "initServerProfitCalculators",
   "initRoatCommandDirectory",
   "initRoatMoneyMakingGuide",
   "initRoatDonatorRankFinder",
@@ -143,7 +226,7 @@ export function createPageCss(globalCss, page, inlineCss = "") {
     if (inlineCss.trim()) {
       bundled += `\n\n/* Page-local styles extracted at build time. */\n${inlineCss.trim()}\n`;
     }
-    return rewriteCssAssetUrls(bundled);
+    return minifyCss(rewriteCssAssetUrls(bundled));
   }
 
   const enabled = new Set(page.features.css);
@@ -172,7 +255,7 @@ export function createPageCss(globalCss, page, inlineCss = "") {
   if (sharedMoneyCalculator) {
     bundled += `\n\n/* Shared calculator styles selected from the authoring stylesheet. */\n${sharedMoneyCalculator}\n`;
   }
-  return rewriteCssAssetUrls(bundled);
+  return minifyCss(rewriteCssAssetUrls(bundled));
 }
 
 function removeFunction(source, name) {
@@ -258,5 +341,5 @@ export function createPageJs(globalJs, page, discord, inlineJs = "") {
   if (inlineJs.trim()) {
     bundled += `\n\n/* Page-local runtime extracted at build time. */\n${inlineJs.trim()}\n`;
   }
-  return bundled;
+  return minifyJavaScript(bundled);
 }

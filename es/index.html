@@ -2554,38 +2554,15 @@ Cantidad: 100M
 
     <script id="reputation-data-script">
       (() => {
-        const reputation = {
-          eldorado: {
-            positivePercentage: "99.6%",
-            reviewCount: "768+",
-            profileUrl: "https://www.eldorado.gg/users/A6D9_Shop/reviews"
-          },
-          sythe: {
-            vouchCount: "427+",
-            profileUrl: "https://www.sythe.org/threads/a6d9-vouches/"
-          }
-        };
-
-        const text = {
-          "eldorado-positive-label": `${reputation.eldorado.positivePercentage} positivas`,
-          "eldorado-review-label": `${reputation.eldorado.reviewCount} Reseñas de Eldorado`,
-          "sythe-vouch-label": `${reputation.sythe.vouchCount} referencias de Sythe`,
-          "eldorado-positive-stat": `${reputation.eldorado.positivePercentage} positivas`,
-          "eldorado-review-stat": `${reputation.eldorado.reviewCount} reseñas`,
-          "sythe-vouch-stat": `${reputation.sythe.vouchCount} referencias`,
-          "eldorado-all-reviews-link": `Leer las ${reputation.eldorado.reviewCount} reseñas en Eldorado.gg →`,
-          "sythe-all-vouches-link": `Ver ${reputation.sythe.vouchCount} referencias comerciales en Sythe.org →`
-        };
-
         document.querySelectorAll("[data-reputation-text]").forEach((node) => {
-          const value = text[node.dataset.reputationText];
+          const value = node.dataset.reputationValue;
           if (value) node.textContent = value;
         });
 
         document.querySelectorAll("[data-reputation-link]").forEach((link) => {
-          const platform = reputation[link.dataset.reputationLink];
-          if (!platform) return;
-          link.href = platform.profileUrl;
+          const profileUrl = link.dataset.reputationProfileUrl;
+          if (!profileUrl) return;
+          link.href = profileUrl;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
         });
