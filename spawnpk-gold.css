@@ -288,3 +288,18 @@
 #spk-preview .spk-assurances strong{font-size:13px}
 #spk-preview .spk-logo-panel{height:110px}
 #spk-preview .spk-logo-panel img{height:102px}
+
+/* Keep the artwork full width while grouping content on large screens. */
+#spk-preview .spk-hero,
+#spk-preview .spk-section,
+#spk-preview .spk-final,
+.spawnpk-market #spk-preview .breadcrumbs {
+  padding-inline: max(5%, calc((100% - 1200px) / 2));
+}
+#spk-preview .spk-description { max-width: 36rem; }
+@media (min-width: 981px) {
+  #spk-preview .spk-hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 48px;
+  }
+}

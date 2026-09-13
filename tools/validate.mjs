@@ -106,6 +106,10 @@ const SPAWNPK_RANKS = Object.freeze([
 ]);
 
 const SPAWNPK_FEATURES = Object.freeze({
+  "es/spawnpk-gold.html": {
+    script: "spawnpk-gold.js",
+    hooks: ["data-spawnpk-request-controls", "data-spawnpk-example"],
+  },
   "spawnpk-gold.html": {
     script: "spawnpk-gold.js",
     hooks: ["data-spawnpk-request-controls", "data-spawnpk-example"],
@@ -2115,86 +2119,90 @@ function validateGuideRelationships(report, generated, schemaByPage) {
 async function validateSpawnPkFeatures(report, rootDir, buildDir, generated, manifest) {
   // Exercise the request controller using the actual rendered message, not a
   // second hand-authored template. Provenance checks below cover bundle inclusion.
-  const requestHtml = generated.get("spawnpk-gold.html") || "";
-  const rateProbe = renderPublishedRates('<strong data-rate-amount>$9</strong> <span>per 1T</span>',
-    { family: "commercial-featured", server: "spawnPk", language: "en" },
-    { spawnPk: { ...SERVERS.spawnPk, publishedRate: { ...SERVERS.spawnPk.publishedRate, usd: 13 } } }, formatUsdAmount);
-  check(report, "features", rateProbe.includes('>$13</strong>'), "SPAWNPK_RATE_CARD_SYNC", "spawnpk-gold.html", "A rate change must update the split rate-card markup from shared data.");
-  const requestTemplate = decodeHtmlEntities(requestHtml.match(/<pre\b[^>]*id="spawnpk-order-message"[^>]*>([\s\S]*?)<\/pre>/i)?.[1] || "");
-  const inputHandlers = {};
-  const field = { value: "10", setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { inputHandlers[name] = fn; } };
-  const preview = { textContent: requestTemplate };
-  const finalPreview = { textContent: "" };
-  const error = { hidden: true };
-  const controls = { hidden: true };
-  const buttons = [{ disabled: false }, { disabled: false }];
-  const presets = [...requestHtml.matchAll(/<button\b[^>]*data-spawnpk-amount="([^"]+)"[^>]*>/g)].map(match => ({
-    attributes: parseAttributes(match[0]), handlers: {},
-    setAttribute(name, value) { this.attributes[name] = value; },
-    getAttribute(name) { return this.attributes[name]; },
-    addEventListener(name, fn) { this.handlers[name] = fn; },
-  }));
-  const previewPanel = { hidden: false };
-  const previewToggle = { hidden: true, handlers: {}, setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.handlers[name] = fn; } };
-  const nodes = { "spawnpk-amount": field, "spawnpk-order-message": preview, "spawnpk-final-message": finalPreview, "spawnpk-amount-error": error, "spawnpk-preview-toggle": previewToggle, "spawnpk-message-panel": previewPanel };
-  try {
-    const runtime = await fs.readFile(path.join(rootDir, "spawnpk-gold.js"), "utf8");
-    new VmScript(runtime).runInNewContext({ document: {
-      querySelector: () => controls, getElementById: (id) => nodes[id],
-      querySelectorAll: (selector) => selector === "[data-spawnpk-amount]" ? presets : buttons,
-    } }, { timeout: 1000 });
-    for (const [value, expected] of [["25", "25"], ["2,5", "25"], ["0.0001", "25"], ["1000", "1000"], ["1000.0000", "25"], ["1000.0001", "25"], ["1001", "25"], ["1000000", "25"], ["", null], ["0", null], ["-2", "25"], ["1e3", "25"], ["<script>", "25"], ["0005", "5"], ["10", "10"]]) {
-      field.value = "25";
-      inputHandlers.input();
-      field.value = value;
-      inputHandlers.input();
-      const valid = expected !== null;
-      check(report, "features", !controls.hidden && error.hidden === valid &&
-        /^[0-9]{0,4}$/.test(field.value) && Number(field.value) <= 1000 &&
-        finalPreview.textContent === preview.textContent &&
-        buttons.every(button => button.disabled === !valid) &&
-        (valid ? preview.textContent === requestTemplate.replace("Amount needed: 10T", `Amount needed: ${expected}T`) && preview.textContent.includes(`Amount needed: ${expected}T`) : !preview.textContent.includes("Amount needed:")),
-      "SPAWNPK_REQUEST_AMOUNT", "spawnpk-gold.html", `Request amount ${JSON.stringify(value)} must produce the correct copy state without a stale quantity.`);
-    }
-    for (const [current, start, end, text, blocked] of [
-      ["10", 2, 2, "a", true], ["10", 2, 2, ".", true], ["10", 2, 2, "e", true],
-      ["1000", 4, 4, "1", true], ["100", 3, 3, "1", true], ["100", 3, 3, "0", false],
-      ["1000", 0, 4, "50", false], ["25", 0, 2, "1001", true],
-      ["25", 0, 2, "10000", true], ["25", 0, 2, "2.5", true], ["25", 0, 2, "-2", true],
-      ["25", 0, 2, "1e3", true], ["25", 0, 2, " 50 ", true], ["25", 0, 2, "1000", false],
-    ]) {
-      field.value = current;
-      field.selectionStart = start;
-      field.selectionEnd = end;
-      for (const eventName of ["beforeinput", "paste"]) {
-        let prevented = false;
-        inputHandlers[eventName]({data:text, clipboardData:{getData:()=>text}, preventDefault(){prevented=true;}});
-        check(report, "features", prevented === blocked && field.value === current,
-          "SPAWNPK_NUMERIC_INPUT_GUARD", "spawnpk-gold.html", `${eventName} must ${blocked ? "reject" : "allow"} ${JSON.stringify(text)} at the selected range without changing its meaning.`);
+  for (const requestPage of ["spawnpk-gold.html", "es/spawnpk-gold.html"]) {
+    const language = requestPage.startsWith("es/") ? "es" : "en";
+    const amountLabel = language === "es" ? "Cantidad que necesito:" : "Amount needed:";
+    const requestHtml = generated.get(requestPage) || "";
+    const rateProbe = renderPublishedRates('<strong data-rate-amount>$9</strong> <span>per 1T</span>',
+      { family: "commercial-featured", server: "spawnPk", language },
+      { spawnPk: { ...SERVERS.spawnPk, publishedRate: { ...SERVERS.spawnPk.publishedRate, usd: 13 } } }, formatUsdAmount);
+    check(report, "features", rateProbe.includes('>$13</strong>'), "SPAWNPK_RATE_CARD_SYNC", requestPage, "A rate change must update the split rate-card markup from shared data.");
+    const requestTemplate = decodeHtmlEntities(requestHtml.match(/<pre\b[^>]*id="spawnpk-order-message"[^>]*>([\s\S]*?)<\/pre>/i)?.[1] || "");
+    const inputHandlers = {};
+    const field = { value: "10", setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { inputHandlers[name] = fn; } };
+    const preview = { textContent: requestTemplate };
+    const finalPreview = { textContent: "" };
+    const error = { hidden: true, textContent: decodeHtmlEntities(requestHtml.match(/<p\b[^>]*id="spawnpk-amount-error"[^>]*>([\s\S]*?)<\/p>/i)?.[1] || "") };
+    const controls = { hidden: true };
+    const buttons = [{ disabled: false }, { disabled: false }];
+    const presets = [...requestHtml.matchAll(/<button\b[^>]*data-spawnpk-amount="([^"]+)"[^>]*>/g)].map(match => ({
+      attributes: parseAttributes(match[0]), handlers: {},
+      setAttribute(name, value) { this.attributes[name] = value; },
+      getAttribute(name) { return this.attributes[name]; },
+      addEventListener(name, fn) { this.handlers[name] = fn; },
+    }));
+    const previewPanel = { hidden: false };
+    const previewToggle = { hidden: true, handlers: {}, setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.handlers[name] = fn; } };
+    const nodes = { "spawnpk-amount": field, "spawnpk-order-message": preview, "spawnpk-final-message": finalPreview, "spawnpk-amount-error": error, "spawnpk-preview-toggle": previewToggle, "spawnpk-message-panel": previewPanel };
+    try {
+      const runtime = await fs.readFile(path.join(rootDir, "spawnpk-gold.js"), "utf8");
+      new VmScript(runtime).runInNewContext({ document: {
+        querySelector: () => controls, getElementById: (id) => nodes[id],
+        querySelectorAll: (selector) => selector === "[data-spawnpk-amount]" ? presets : buttons,
+      } }, { timeout: 1000 });
+      for (const [value, expected] of [["25", "25"], ["2,5", "25"], ["0.0001", "25"], ["1000", "1000"], ["1000.0000", "25"], ["1000.0001", "25"], ["1001", "25"], ["1000000", "25"], ["", null], ["0", null], ["-2", "25"], ["1e3", "25"], ["<script>", "25"], ["0005", "5"], ["10", "10"]]) {
+        field.value = "25";
+        inputHandlers.input();
+        field.value = value;
+        inputHandlers.input();
+        const valid = expected !== null;
+        check(report, "features", !controls.hidden && error.hidden === valid &&
+          /^[0-9]{0,4}$/.test(field.value) && Number(field.value) <= 1000 &&
+          finalPreview.textContent === preview.textContent &&
+          buttons.every(button => button.disabled === !valid) &&
+          (valid ? preview.textContent === requestTemplate.replace(`${amountLabel} 10T`, `${amountLabel} ${expected}T`) && preview.textContent.includes(`${amountLabel} ${expected}T`) : preview.textContent === error.textContent),
+        "SPAWNPK_REQUEST_AMOUNT", requestPage, `Request amount ${JSON.stringify(value)} must produce the correct copy state without a stale quantity.`);
       }
+      for (const [current, start, end, text, blocked] of [
+        ["10", 2, 2, "a", true], ["10", 2, 2, ".", true], ["10", 2, 2, "e", true],
+        ["1000", 4, 4, "1", true], ["100", 3, 3, "1", true], ["100", 3, 3, "0", false],
+        ["1000", 0, 4, "50", false], ["25", 0, 2, "1001", true],
+        ["25", 0, 2, "10000", true], ["25", 0, 2, "2.5", true], ["25", 0, 2, "-2", true],
+        ["25", 0, 2, "1e3", true], ["25", 0, 2, " 50 ", true], ["25", 0, 2, "1000", false],
+      ]) {
+        field.value = current;
+        field.selectionStart = start;
+        field.selectionEnd = end;
+        for (const eventName of ["beforeinput", "paste"]) {
+          let prevented = false;
+          inputHandlers[eventName]({data:text, clipboardData:{getData:()=>text}, preventDefault(){prevented=true;}});
+          check(report, "features", prevented === blocked && field.value === current,
+            "SPAWNPK_NUMERIC_INPUT_GUARD", requestPage, `${eventName} must ${blocked ? "reject" : "allow"} ${JSON.stringify(text)} at the selected range without changing its meaning.`);
+        }
+      }
+      check(report, "features", presets.map(button => button.getAttribute("data-spawnpk-amount")).join(",") === "5,10,25,50", "SPAWNPK_PRESET_AMOUNTS", requestPage, "The storefront must offer its four gold-amount shortcuts.");
+      const discordLinks = getTagEntries(requestHtml, "a").filter(({ attributes }) => String(attributes.href || "").startsWith("https://discord.com/users/"));
+      check(report, "features", discordLinks.length >= 3 && discordLinks.every(({ attributes }) => !attributes.disabled && attributes["aria-disabled"] !== "true"), "SPAWNPK_DIRECT_CONTACT", requestPage, "Direct Discord contact must remain a native link independent of the amount form.");
+      check(report, "features", ["spk-safety", "spk-source", "spk-payments"].every(id => requestHtml.includes(`id="${id}"`)) && !/href="#spk-safety">Gold Source/.test(requestHtml), "SPAWNPK_INFORMATION_TARGETS", requestPage, "Payment options, seller identity and gold source must have distinct destinations.");
+      for (const button of presets) {
+        button.handlers.click();
+        check(report, "features", field.value === button.getAttribute("data-spawnpk-amount") &&
+          preview.textContent.includes(`${amountLabel} ${field.value}T`) &&
+          presets.filter(preset => preset.getAttribute("aria-pressed") === "true").length === 1 &&
+          button.getAttribute("aria-pressed") === "true",
+        "SPAWNPK_PRESET_SELECTION", requestPage, "A gold-amount shortcut must update both the copy message and the accessible selected state.");
+      }
+      field.value = "26";
+      inputHandlers.input();
+      check(report, "features", presets.every(button => button.getAttribute("aria-pressed") === "false"), "SPAWNPK_CUSTOM_AMOUNT", requestPage, "A custom amount must clear the preset selection.");
+      check(report, "features", previewPanel.hidden && !previewToggle.hidden && previewToggle["aria-expanded"] === "false", "SPAWNPK_PREVIEW_INITIAL", requestPage, "The enhanced preview starts collapsed without removing the copyable message.");
+      previewToggle.handlers.click();
+      check(report, "features", !previewPanel.hidden && previewToggle["aria-expanded"] === "true", "SPAWNPK_PREVIEW_OPEN", requestPage, "The message preview must expand accessibly.");
+      previewToggle.handlers.click();
+      check(report, "features", previewPanel.hidden && previewToggle["aria-expanded"] === "false", "SPAWNPK_PREVIEW_CLOSE", requestPage, "The message preview must collapse accessibly.");
+    } catch (error) {
+      addIssue(report, "features", "SPAWNPK_REQUEST_RUNTIME", requestPage, error.message);
     }
-    check(report, "features", presets.map(button => button.getAttribute("data-spawnpk-amount")).join(",") === "5,10,25,50", "SPAWNPK_PRESET_AMOUNTS", "spawnpk-gold.html", "The storefront must offer its four gold-amount shortcuts.");
-    const discordLinks = getTagEntries(requestHtml, "a").filter(({ attributes }) => String(attributes.href || "").startsWith("https://discord.com/users/"));
-    check(report, "features", discordLinks.length >= 3 && discordLinks.every(({ attributes }) => !attributes.disabled && attributes["aria-disabled"] !== "true"), "SPAWNPK_DIRECT_CONTACT", "spawnpk-gold.html", "Direct Discord contact must remain a native link independent of the amount form.");
-    check(report, "features", ["spk-safety", "spk-source", "spk-payments"].every(id => requestHtml.includes(`id="${id}"`)) && !/href="#spk-safety">Gold Source/.test(requestHtml), "SPAWNPK_INFORMATION_TARGETS", "spawnpk-gold.html", "Payment options, seller identity and gold source must have distinct destinations.");
-    for (const button of presets) {
-      button.handlers.click();
-      check(report, "features", field.value === button.getAttribute("data-spawnpk-amount") &&
-        preview.textContent.includes(`Amount needed: ${field.value}T`) &&
-        presets.filter(preset => preset.getAttribute("aria-pressed") === "true").length === 1 &&
-        button.getAttribute("aria-pressed") === "true",
-      "SPAWNPK_PRESET_SELECTION", "spawnpk-gold.html", "A gold-amount shortcut must update both the copy message and the accessible selected state.");
-    }
-    field.value = "26";
-    inputHandlers.input();
-    check(report, "features", presets.every(button => button.getAttribute("aria-pressed") === "false"), "SPAWNPK_CUSTOM_AMOUNT", "spawnpk-gold.html", "A custom amount must clear the preset selection.");
-    check(report, "features", previewPanel.hidden && !previewToggle.hidden && previewToggle["aria-expanded"] === "false", "SPAWNPK_PREVIEW_INITIAL", "spawnpk-gold.html", "The enhanced preview starts collapsed without removing the copyable message.");
-    previewToggle.handlers.click();
-    check(report, "features", !previewPanel.hidden && previewToggle["aria-expanded"] === "true", "SPAWNPK_PREVIEW_OPEN", "spawnpk-gold.html", "The message preview must expand accessibly.");
-    previewToggle.handlers.click();
-    check(report, "features", previewPanel.hidden && previewToggle["aria-expanded"] === "false", "SPAWNPK_PREVIEW_CLOSE", "spawnpk-gold.html", "The message preview must collapse accessibly.");
-  } catch (error) {
-    addIssue(report, "features", "SPAWNPK_REQUEST_RUNTIME", "spawnpk-gold.html", error.message);
   }
   for (const [file, contract] of Object.entries(SPAWNPK_FEATURES)) {
     const html = generated.get(file) || "";

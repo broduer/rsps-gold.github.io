@@ -10,6 +10,8 @@
   var previewToggle = document.getElementById("spawnpk-preview-toggle");
   var previewPanel = document.getElementById("spawnpk-message-panel");
   var template = preview.textContent;
+  var initialQuantity = amount.value + "T";
+  var emptyMessage = error.textContent || "";
   var finalPreview = document.getElementById("spawnpk-final-message");
   var lastAcceptedValue = amount.value;
   function isEditableAmount(value) {
@@ -41,8 +43,8 @@
       button.setAttribute("aria-pressed", valid && Number(button.getAttribute("data-spawnpk-amount")) === Number(value) ? "true" : "false");
     });
     preview.textContent = valid
-      ? template.replace("Amount needed: 10T", "Amount needed: " + value + "T")
-      : "Choose a whole-number amount from 1 to 1,000T to prepare your request.";
+      ? template.replace(initialQuantity, value + "T")
+      : emptyMessage;
     if (finalPreview) finalPreview.textContent = preview.textContent;
   }
   controls.hidden = false;
