@@ -2150,7 +2150,7 @@ async function validateSpawnPkFeatures(report, rootDir, buildDir, generated, man
         querySelector: () => controls, getElementById: (id) => nodes[id],
         querySelectorAll: (selector) => selector === "[data-spawnpk-amount]" ? presets : buttons,
       } }, { timeout: 1000 });
-      for (const [value, expected] of [["25", "25"], ["2,5", "25"], ["0.0001", "25"], ["1000", "1000"], ["1000.0000", "25"], ["1000.0001", "25"], ["1001", "25"], ["1000000", "25"], ["", null], ["0", null], ["-2", "25"], ["1e3", "25"], ["<script>", "25"], ["0005", "5"], ["10", "10"]]) {
+      for (const [value, expected] of [["25", "25"], ["2,5", "25"], ["0.0001", "25"], ["1000", "1000"], ["1000.0000", "25"], ["1000.0001", "25"], ["1001", "25"], ["1000000", "25"], ["", null], ["0", null], ["1", null], ["4", null], ["5", "5"], ["-2", "25"], ["1e3", "25"], ["<script>", "25"], ["0005", "5"], ["10", "10"]]) {
         field.value = "25";
         inputHandlers.input();
         field.value = value;

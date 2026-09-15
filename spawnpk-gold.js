@@ -35,7 +35,7 @@
     if (!isEditableAmount(amount.value)) amount.value = lastAcceptedValue;
     lastAcceptedValue = amount.value;
     var value = amount.value === "" ? "" : String(Number(amount.value));
-    var valid = /^[0-9]+$/.test(value) && Number(value) > 0 && Number(value) <= 1000;
+    var valid = /^[0-9]+$/.test(value) && Number(value) >= 5 && Number(value) <= 1000;
     error.hidden = valid;
     amount.setAttribute("aria-invalid", valid ? "false" : "true");
     copyButtons.forEach(function (button) { button.disabled = !valid; });

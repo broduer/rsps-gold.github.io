@@ -80,9 +80,10 @@
         </div>
         <aside class="spk-quote" id="spk-rates" aria-label="SpawnPK gold quote"><span class="spk-alias" id="rates" aria-hidden="true"></span>
           <div class="spk-logo-panel"><img src="assets/spawnpk-sales/spk-5cc3c74a1cf3.webp" alt="SpawnPK" width="240" height="135" loading="eager" decoding="async"></div>
-          <div class="spk-kicker">SPAWNPK GOLD · USD</div>
+          <h2 class="spk-rate-heading">SpawnPK gold prices &amp; availability</h2>
           <p class="spk-price">From <strong data-rate-amount>$9</strong> <span>per 1T</span></p>
-          <p class="spk-subtle spk-rate-note">Stock and full price confirmed on Discord.</p>
+          <p class="spk-subtle spk-rate-note">Rates vary with your amount and available stock.<br>Payment fees are extra. Confirm your quote on Discord.</p>
+          <div class="spk-order-facts"><span>Minimum purchase <strong>5T</strong></span><span>Prices in <strong>USD</strong></span></div>
           <div data-spawnpk-request-controls hidden>
 <div class="spk-quantity-label"><label for="spawnpk-amount">How much gold do you want?</label><span>1T = 1 trillion coins</span></div>
           <div class="spk-presets" role="group" aria-label="Gold amounts">
@@ -92,8 +93,9 @@
   <button data-spawnpk-amount="50" aria-pressed="false"><span class="spk-inventory-item" aria-hidden="true"></span><span class="spk-inventory-label">50T</span></button>
 </div>
           <div class="spk-input"><input id="spawnpk-amount" value="10" inputmode="numeric" pattern="[0-9]*" aria-describedby="spk-amount-limit spawnpk-amount-error" maxlength="4" autocomplete="off" aria-label="Custom gold amount in trillions"><span>T</span></div>
-          <p class="spk-amount-limit" id="spk-amount-limit">Whole numbers · Maximum: 1,000T.</p>
-          <p id="spawnpk-amount-error" class="spk-error" hidden role="alert">Enter a whole number from 1 to 1,000T.</p>
+          <p class="spk-amount-limit" id="spk-amount-limit">Whole numbers · Choose 5–1,000T.</p>
+          <p class="spk-bulk-note">Buying more than 1,000T? <a href="https://discord.com/users/640265737050652672" target="_blank" rel="noopener noreferrer" data-action="discord-profile">Ask a6d9 on Discord ↗</a></p>
+          <p id="spawnpk-amount-error" class="spk-error" hidden role="alert">Enter a whole number from 5 to 1,000T.</p>
           </div>
 <a class="spk-button spk-gold spk-wide" href="https://discord.com/users/640265737050652672" target="_blank" rel="noopener noreferrer" data-action="discord-profile">Open Discord <span>↗</span></a>
           <div class="spk-request-tools"><button class="spk-copy-request copy-btn" data-copy-target="spawnpk-order-message" data-copy-success="Request copied" data-action="copy-spawnpk-order"><span class="spk-glyph" aria-hidden="true">◇</span> Copy request</button><button type="button" id="spawnpk-preview-toggle" class="spk-preview-toggle" aria-controls="spawnpk-message-panel" aria-expanded="true" hidden>Preview your request</button></div><div class="spk-message" id="spawnpk-message-panel"><pre id="spawnpk-order-message" data-spawnpk-example>Hi a6d9, I'd like to buy SpawnPK gold.
@@ -104,7 +106,7 @@ What is the current stock, full price and available payment method?</pre></div><
 <div class="spk-assurances"><div><span class="spk-glyph" aria-hidden="true">◇</span><span><strong>Price agreed before payment</strong></span></div><div><span class="spk-glyph" aria-hidden="true">◇</span><span><strong>Talk directly with a6d9</strong></span></div><div><span class="spk-glyph" aria-hidden="true">◇</span><span><strong>Public trading history</strong></span></div></div>
 </div>
 </section>
-    <section class="spk-section" id="spk-how"><span class="spk-alias" id="how-to-order" aria-hidden="true"></span><div class="spk-section-heading"><span class="spk-kicker">FROM QUOTE TO YOUR NEXT UPGRADE</span><h2>How to buy SpawnPK gold</h2></div><div class="spk-steps"><article><span class="spk-step-number">1</span><h3>Choose your amount</h3><p>Pick an amount or tell us what you need. Custom amounts are welcome.</p></article><article><span class="spk-step-number">2</span><h3>Confirm on Discord</h3><p>Agree on stock, the full price, payment method and delivery details with a6d9.</p></article><article><span class="spk-step-number">3</span><h3>Complete your trade</h3><p>Once payment is confirmed, receive your gold through the in-game transfer method agreed with a6d9.</p></article></div></section>
+    <section class="spk-section" id="spk-how"><span class="spk-alias" id="how-to-order" aria-hidden="true"></span><div class="spk-section-heading"><span class="spk-kicker">FROM QUOTE TO YOUR NEXT UPGRADE</span><h2>How to buy SpawnPK gold</h2></div><div class="spk-steps"><article><span class="spk-step-number">1</span><h3>Choose your amount</h3><p>Choose 5T or more for your next upgrade. For orders above 1,000T, message a6d9 directly.</p></article><article><span class="spk-step-number">2</span><h3>Confirm on Discord</h3><p>Confirm whether your gold is ready or needs a wait, plus the price, payment fees and delivery details with a6d9.</p></article><article><span class="spk-step-number">3</span><h3>Complete your trade</h3><p>Once payment is confirmed, receive your gold through the in-game transfer method agreed with a6d9.</p></article></div></section>
     <section class="spk-section spk-why-buy" id="spk-why-buy" aria-labelledby="spk-why-title"><span class="spk-alias" id="why-buy-gold" aria-hidden="true"></span><span class="spk-alias" id="why-buy" aria-hidden="true"></span>
   <div class="spk-why-heading">
     <span class="spk-kicker">YOUR BANK. YOUR NEXT UPGRADE.</span>
@@ -177,22 +179,25 @@ What is the current stock, full price and available payment method?</pre></div><
     </article>
   </div>
   <div class="spk-payment-next">
-    <div><strong>Get your full quote first.</strong><p>Agree on the total, any fees and the delivery plan before paying.</p></div>
+    <div><strong>Confirm the price and payment fees.</strong><p>Any payment-method fees are added to the gold price and paid by the buyer. Confirm the gold price, applicable fees and delivery plan before paying.</p></div>
     <a href="/#payment-methods">All payment details <span aria-hidden="true">↗</span></a>
   </div>
 </section>
 
 
 
-<section class="spk-section spk-bag-layout" id="spk-bags"><span class="spk-alias" id="cash-bags" aria-hidden="true"></span><div><span class="spk-kicker">KNOW YOUR GOLD</span><h2>Gold &amp; Cash Bags explained</h2><p>1T means one trillion SpawnPK coins. A 100M Cash Bag represents 100 million coins. Confirm the denomination and total value for your transfer.</p><a class="spk-text-gold" href="spawnpk-guide.html" target="_blank" rel="noopener noreferrer">Explore the SpawnPK guides ↗</a></div><div class="spk-bag-table"><table><caption>Gold value in 100M Cash Bags</caption><thead><tr><th>Gold</th><th>100M Cash Bags</th></tr></thead><tbody><tr><td>1T</td><td>10,000</td></tr><tr><td>10T</td><td>100,000</td></tr><tr><td>25T</td><td>250,000</td></tr></tbody></table><p>Conversion examples, not a stock or price list.</p></div></section>
+<section class="spk-section spk-bag-layout" id="spk-bags"><span class="spk-alias" id="cash-bags" aria-hidden="true"></span><div><span class="spk-kicker">KNOW YOUR GOLD</span><h2>SpawnPK gold &amp; 100M Cash Bags explained</h2><p>1T means one trillion SpawnPK coins. A 100M Cash Bag represents 100 million coins. Confirm the denomination and total value for your transfer.</p><a class="spk-text-gold" href="spawnpk-guide.html" target="_blank" rel="noopener noreferrer">Explore the SpawnPK guides ↗</a></div><div class="spk-bag-table"><table><caption>Gold value in 100M Cash Bags</caption><thead><tr><th>Gold</th><th>100M Cash Bags</th></tr></thead><tbody><tr><td>1T</td><td>10,000</td></tr><tr><td>10T</td><td>100,000</td></tr><tr><td>25T</td><td>250,000</td></tr></tbody></table><p>Conversion examples, not a stock or price list.</p></div></section>
     <section class="spk-section spk-identity-section" id="spk-safety" aria-labelledby="spk-identity-title"><span class="spk-alias" id="safety" aria-hidden="true"></span>
   <div><span class="spk-kicker">YOUR SELLER</span><h2 id="spk-identity-title">Make sure it’s a6d9</h2><p>Open the profile below and match the username and user ID. A display name or avatar alone does not identify the account.</p></div>
   <div class="spk-identity-card"><span class="spk-small">DISCORD USERNAME</span><strong id="spk-username">a6d9</strong><span class="spk-small">DISCORD USER ID</span><code id="spk-user-id">640265737050652672</code><div class="spk-identity-actions"><a href="https://discord.com/users/640265737050652672" target="_blank" rel="noopener noreferrer" data-action="discord-profile">Open Discord profile ↗</a><button type="button" class="copy-btn spk-text-button" data-copy-target="spk-user-id" data-copy-success="User ID copied" data-action="copy-discord-id">Copy user ID</button></div></div>
 </section>
 <section class="spk-section spk-faq faq-list" id="spk-faq" aria-labelledby="spk-faq-title"><span class="spk-alias" id="faq" aria-hidden="true"></span>
   <span class="spk-kicker">BEFORE YOU TRADE</span><h2 id="spk-faq-title">SpawnPK gold questions</h2>
-  <details><summary>How much does SpawnPK gold cost?</summary><p>Rates start from $9 per 1T. The rate can vary with your order size, stock and demand. Ask for the full order total before paying.</p></details>
-  <details><summary>Is gold in stock, and how is it delivered?</summary><p>Availability is checked for the amount you want. Before payment, a6d9 confirms the delivery timing and in-game transfer method. After payment is confirmed, you receive the agreed value in coins, 100M Cash Bags or a mix of both.</p></details>
+  <details><summary>How much does SpawnPK gold cost?</summary><p>Rates start from $9 per 1T. The rate can vary with your order size, stock and demand. Payment-method fees are extra and are paid by the buyer. Confirm the gold price and applicable fees before paying.</p></details>
+  <details><summary>What is the minimum purchase?</summary><p>The minimum purchase is 5T: five trillion SpawnPK coins. Choose between 5T and 1,000T in the request form, or contact a6d9 on Discord to arrange a larger order.</p></details>
+  <details><summary>How quickly will I get a reply and receive my gold?</summary><p>Replies on Discord usually take around 30 minutes. Delivery normally takes around 5 minutes after payment is confirmed, but both times can vary considerably. Confirm availability and the expected delivery time with a6d9 before paying.</p></details>
+  <details><summary>Is gold in stock, and how is it delivered?</summary><p>Before you pay, a6d9 confirms on Discord whether your amount is available now or requires a wait. You agree on any waiting time and the in-game transfer method in advance. After payment is confirmed, you receive the agreed value in coins, 100M Cash Bags or a mix of both.</p></details>
+  <details><summary>What if my paid order cannot be delivered?</summary><p>Availability and any waiting time are agreed before payment. If we still cannot fulfil a paid order, you can choose a refund instead of waiting for the gold to become available. Contact a6d9 on Discord to let us know which option you prefer.</p></details>
   <details><summary>Which payment methods may be available for SpawnPK gold?</summary><p>Payment is agreed after the order details are confirmed. Options may include Eldorado.gg checkout, supported cryptocurrency or an eligible OSRS or RS3 gold exchange, depending on the order and checkout availability.</p></details>
   <details><summary>Do I need to share my SpawnPK login?</summary><p>A standard gold purchase normally does not require your SpawnPK login. Keep your email access, recovery details and payment credentials private.</p></details>
   <details id="spk-source"><summary>Where does your SpawnPK gold come from?</summary><span class="spk-alias" id="gold-source" aria-hidden="true"></span><span class="spk-alias" id="source" aria-hidden="true"></span><p>Our stock comes from other SpawnPK players who sell gold they no longer need. Players build their banks through PvM, PvP, trading and other in-game activities. Supply changes as players buy and sell, so availability is checked for each order.</p></details>
