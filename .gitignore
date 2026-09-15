@@ -4,6 +4,8 @@ dist/
 coverage/
 test-results/
 playwright-report/
+handover/
+tmp/
 .pnpm-store/
 pnpm-lock.yaml
 

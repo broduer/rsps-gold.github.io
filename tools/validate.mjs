@@ -86,7 +86,7 @@ const GROUPS = Object.freeze([
   ["assets", "Bundles and optimized assets"],
 ]);
 
-const SOURCE_EXCLUDED_PREFIXES = [".git/", "dist/", "node_modules/"];
+const SOURCE_EXCLUDED_PREFIXES = [".git/", "dist/", "node_modules/", "handover/", "tmp/"];
 const SOURCE_CSS_UPPER_BOUND = 300_000;
 const SOURCE_JS_UPPER_BOUND = 100_000;
 const HOME_CSS_BUDGET = 200_000;
@@ -2123,6 +2123,13 @@ async function validateSpawnPkFeatures(report, rootDir, buildDir, generated, man
     const language = requestPage.startsWith("es/") ? "es" : "en";
     const amountLabel = language === "es" ? "Cantidad que necesito:" : "Amount needed:";
     const requestHtml = generated.get(requestPage) || "";
+    const amountControl = getTagEntries(requestHtml, "input").find(entry => entry.attributes.id === "spawnpk-amount");
+    const visibleLabel = getElementEntries(requestHtml, "label").find(entry => entry.attributes.for === "spawnpk-amount");
+    const normalizeLabel = text => toPlainText(text || "").toLocaleLowerCase(language).replace(/[\p{P}\p{S}]/gu, "").replace(/\s+/g, " ").trim();
+    const labelText = normalizeLabel(visibleLabel?.content);
+    const override = amountControl?.attributes["aria-label"];
+    check(report, "features", Boolean(labelText) && (!override || normalizeLabel(override).includes(labelText)),
+      "SPAWNPK_LABEL_IN_NAME", requestPage, "The amount field's accessible name must retain its visible label.");
     const rateProbe = renderPublishedRates('<strong data-rate-amount>$9</strong> <span>per 1T</span>',
       { family: "commercial-featured", server: "spawnPk", language },
       { spawnPk: { ...SERVERS.spawnPk, publishedRate: { ...SERVERS.spawnPk.publishedRate, usd: 13 } } }, formatUsdAmount);
@@ -2131,7 +2138,18 @@ async function validateSpawnPkFeatures(report, rootDir, buildDir, generated, man
     const inputHandlers = {};
     const field = { value: "10", setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { inputHandlers[name] = fn; } };
     const preview = { textContent: requestTemplate };
-    const finalPreview = { textContent: "" };
+    const finalPreview = { textContent: "", hidden: false };
+    const finalHelp = { hidden: true };
+    const estimateAttributes = parseAttributes(requestHtml.match(/<p\b[^>]*id="spawnpk-estimate"[^>]*>/)?.[0] || "");
+    const estimate = { hidden: true, getAttribute: name => estimateAttributes[name] };
+    const estimateValue = { textContent: "" };
+    const bagStack = { textContent: "", attributes: {}, setAttribute(name, value) { this.attributes[name] = value; }, removeAttribute(name) { delete this.attributes[name]; } };
+    const bagAttributes = parseAttributes(requestHtml.match(/<span\b[^>]*id="spawnpk-bag-total"[^>]*>/)?.[0] || "");
+    const bagTotal = { textContent: "", getAttribute: name => bagAttributes[name] };
+    const rateAttributes = parseAttributes(requestHtml.match(/<strong\b[^>]*data-rate-amount[^>]*>/)?.[0] || "");
+    const rateNode = { getAttribute: () => rateAttributes["data-rate-usd"] };
+    check(report, "features", ["spawnpk-final-help", "spawnpk-estimate", "spawnpk-estimate-value", "spawnpk-bag-stack", "spawnpk-bag-total"].every(id => requestHtml.includes(`id="${id}"`)),
+      "SPAWNPK_REQUEST_FEEDBACK_TARGETS", requestPage, "Estimate and final-request feedback must exist in the rendered page.");
     const error = { hidden: true, textContent: decodeHtmlEntities(requestHtml.match(/<p\b[^>]*id="spawnpk-amount-error"[^>]*>([\s\S]*?)<\/p>/i)?.[1] || "") };
     const controls = { hidden: true };
     const buttons = [{ disabled: false }, { disabled: false }];
@@ -2143,11 +2161,14 @@ async function validateSpawnPkFeatures(report, rootDir, buildDir, generated, man
     }));
     const previewPanel = { hidden: false };
     const previewToggle = { hidden: true, handlers: {}, setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.handlers[name] = fn; } };
-    const nodes = { "spawnpk-amount": field, "spawnpk-order-message": preview, "spawnpk-final-message": finalPreview, "spawnpk-amount-error": error, "spawnpk-preview-toggle": previewToggle, "spawnpk-message-panel": previewPanel };
+    const nodes = { "spawnpk-amount": field, "spawnpk-order-message": preview, "spawnpk-final-message": finalPreview, "spawnpk-final-help": finalHelp, "spawnpk-estimate": estimate, "spawnpk-estimate-value": estimateValue, "spawnpk-amount-error": error, "spawnpk-preview-toggle": previewToggle, "spawnpk-message-panel": previewPanel };
+    nodes["spawnpk-bag-stack"] = bagStack;
+    nodes["spawnpk-bag-total"] = bagTotal;
     try {
       const runtime = await fs.readFile(path.join(rootDir, "spawnpk-gold.js"), "utf8");
       new VmScript(runtime).runInNewContext({ document: {
-        querySelector: () => controls, getElementById: (id) => nodes[id],
+        documentElement: { lang: language },
+        querySelector: (selector) => selector === "[data-rate-amount]" ? rateNode : controls, getElementById: (id) => nodes[id],
         querySelectorAll: (selector) => selector === "[data-spawnpk-amount]" ? presets : buttons,
       } }, { timeout: 1000 });
       for (const [value, expected] of [["25", "25"], ["2,5", "25"], ["0.0001", "25"], ["1000", "1000"], ["1000.0000", "25"], ["1000.0001", "25"], ["1001", "25"], ["1000000", "25"], ["", null], ["0", null], ["1", null], ["4", null], ["5", "5"], ["-2", "25"], ["1e3", "25"], ["<script>", "25"], ["0005", "5"], ["10", "10"]]) {
@@ -2158,10 +2179,26 @@ async function validateSpawnPkFeatures(report, rootDir, buildDir, generated, man
         const valid = expected !== null;
         check(report, "features", !controls.hidden && error.hidden === valid &&
           /^[0-9]{0,4}$/.test(field.value) && Number(field.value) <= 1000 &&
-          finalPreview.textContent === preview.textContent &&
+          finalPreview.hidden === !valid && finalHelp.hidden === valid &&
+          finalPreview.textContent === (valid ? preview.textContent : requestTemplate.replace(`${amountLabel} 10T`, `${amountLabel} 25T`)) &&
+          estimate.hidden === !valid && (valid ? estimateValue.textContent.startsWith(`${expected}T · ${language === "es" ? "Desde" : "From"} `) : estimateValue.textContent === "") &&
           buttons.every(button => button.disabled === !valid) &&
           (valid ? preview.textContent === requestTemplate.replace(`${amountLabel} 10T`, `${amountLabel} ${expected}T`) && preview.textContent.includes(`${amountLabel} ${expected}T`) : preview.textContent === error.textContent),
         "SPAWNPK_REQUEST_AMOUNT", requestPage, `Request amount ${JSON.stringify(value)} must produce the correct copy state without a stale quantity.`);
+      }
+      for (const [quantity, stack, size, totalBags] of [
+        ["5", "50000", "small", 50000], ["9", "90000", "small", 90000],
+        ["10", "100K", "thousands", 100000], ["25", "250K", "thousands", 250000],
+        ["50", "500K", "thousands", 500000], ["999", "9990K", "thousands", 9990000],
+        ["1000", "10M", "millions", 10000000], ["", "", undefined, null],
+        ["4", "", undefined, null], ["10", "100K", "thousands", 100000],
+      ]) {
+        field.value = quantity;
+        inputHandlers.input();
+        const exact = totalBags === null ? "" : totalBags.toLocaleString(language, { useGrouping: "always" }) + " × " + bagAttributes["data-bag-label"];
+        check(report, "features", bagStack.textContent === stack && bagStack.attributes["data-stack-size"] === size &&
+          bagTotal.textContent === exact && estimate.hidden === (totalBags === null),
+          "SPAWNPK_CASH_BAG_STACK", requestPage, `Quantity ${JSON.stringify(quantity)} must show the correct 100M bag conversion, OSRS stack threshold and invalid state.`);
       }
       for (const [current, start, end, text, blocked] of [
         ["10", 2, 2, "a", true], ["10", 2, 2, ".", true], ["10", 2, 2, "e", true],
@@ -2200,6 +2237,49 @@ async function validateSpawnPkFeatures(report, rootDir, buildDir, generated, man
       check(report, "features", !previewPanel.hidden && previewToggle["aria-expanded"] === "true", "SPAWNPK_PREVIEW_OPEN", requestPage, "The message preview must expand accessibly.");
       previewToggle.handlers.click();
       check(report, "features", previewPanel.hidden && previewToggle["aria-expanded"] === "false", "SPAWNPK_PREVIEW_CLOSE", requestPage, "The message preview must collapse accessibly.");
+      // Feed changed shared rates through the renderer and the actual controller.
+      for (const [usd, text] of [[13, language === "es" ? "325 $" : "$325"], [9.5, language === "es" ? "237,50 $" : "$237.50"], [null, null]]) {
+        const renderedRate = usd === null ? "" : renderPublishedRates('<strong data-rate-amount>$9</strong>',
+          { family: "commercial-featured", server: "spawnPk", language },
+          { spawnPk: { ...SERVERS.spawnPk, publishedRate: { ...SERVERS.spawnPk.publishedRate, usd, fractionDigits: 2 } } }, formatUsdAmount);
+        const machineRate = parseAttributes(renderedRate.match(/<strong\b[^>]*>/)?.[0] || "")["data-rate-usd"];
+        preview.textContent = requestTemplate;
+        field.value = "10";
+        new VmScript(runtime).runInNewContext({ document: {
+          documentElement: { lang: language }, getElementById: id => nodes[id],
+          querySelector: selector => selector === "[data-rate-amount]" ? { getAttribute: () => machineRate } : controls,
+          querySelectorAll: selector => selector === "[data-spawnpk-amount]" ? presets : buttons,
+        } }, { timeout: 1000 });
+        field.value = "25";
+        inputHandlers.input();
+        check(report, "features", estimate.hidden === (text === null) &&
+          (text === null ? estimateValue.textContent === "" : estimateValue.textContent === `25T · ${language === "es" ? "Desde" : "From"} ${text}`) &&
+          preview.textContent === requestTemplate.replace(`${amountLabel} 10T`, `${amountLabel} 25T`),
+          "SPAWNPK_ESTIMATE_RATE_SYNC", requestPage, "The indicative total must use the rendered numeric rate, preserve decimals, hide missing rates and stay out of the copied request.");
+      }
+      const details = { open: false };
+      const target = { closest: () => details };
+      const root = { contains: node => node === target };
+      const hashNodes = { "spk-preview": root, "spk-source": target, source: target, "gold-source": target };
+      const hashHandlers = {};
+      const anchor = { getAttribute: () => "#source", addEventListener: (event, fn) => { hashHandlers[event] = fn; } };
+      const location = { hash: "#spk-source" };
+      new VmScript(runtime).runInNewContext({
+        document: { querySelector: () => null, getElementById: id => hashNodes[id], querySelectorAll: () => [anchor] },
+        window: { location, addEventListener: (event, fn) => { hashHandlers[event] = fn; } },
+      }, { timeout: 1000 });
+      check(report, "features", details.open, "SPAWNPK_FAQ_DIRECT_HASH", requestPage, "A direct FAQ fragment must open the answer on page load.");
+      details.open = false;
+      hashHandlers.click();
+      check(report, "features", details.open, "SPAWNPK_FAQ_LINK", requestPage, "An internal alias link must open its containing answer.");
+      details.open = false;
+      location.hash = "#gold-source";
+      hashHandlers.hashchange();
+      check(report, "features", details.open, "SPAWNPK_FAQ_HASHCHANGE", requestPage, "Changing the fragment must open the corresponding answer.");
+      details.open = false;
+      location.hash = "#%invalid";
+      hashHandlers.hashchange();
+      check(report, "features", !details.open, "SPAWNPK_FAQ_INVALID_HASH", requestPage, "Malformed fragments must not throw or open unrelated content.");
     } catch (error) {
       addIssue(report, "features", "SPAWNPK_REQUEST_RUNTIME", requestPage, error.message);
     }

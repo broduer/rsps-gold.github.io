@@ -48,6 +48,30 @@ import {
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const OPTIMIZED_IMAGES = Object.freeze({
+  "assets/spawnpk-sales/spk-a6cdeb9f88b8.webp": {
+    path: "assets/spawnpk-sales/cash-bag-396.webp", width: 396, height: 404,
+  },
+  "assets/spawnpk-sales/spk-ea3e6a08cea4.webp": {
+    path: "assets/spawnpk-sales/unholy-behemoth-720.webp", width: 720, height: 469,
+    variants: [{ path: "assets/spawnpk-sales/unholy-behemoth-480.webp", width: 480 }],
+    sizes: "(max-width: 680px) 80vw, 360px",
+  },
+  "assets/spawnpk-sales/spk-5edd029b92ba.webp": {
+    path: "assets/spawnpk-sales/bloodrend-720.webp", width: 720, height: 912,
+    variants: [{ path: "assets/spawnpk-sales/bloodrend-480.webp", width: 480 }],
+    sizes: "(max-width: 680px) 40vw, 180px",
+  },
+  "assets/spawnpk-sales/spk-468ea26acabd.webp": {
+    path: "assets/spawnpk-sales/webweaver-720.webp", width: 720, height: 854,
+    variants: [{ path: "assets/spawnpk-sales/webweaver-480.webp", width: 480 }],
+    sizes: "(max-width: 680px) 40vw, 180px",
+  },
+  "assets/spawnpk-sales/spk-cd400b427902.webp": {
+    path: "assets/spawnpk-sales/tumekens-shadow-720.webp", width: 720, height: 678,
+    variants: [{ path: "assets/spawnpk-sales/tumekens-shadow-480.webp", width: 480 }],
+    sizes: "(max-width: 680px) 80vw, 360px",
+  },
+
   "assets/rsps-adventure-background.png": {
     path: "assets/rsps-adventure-background.webp",
     width: 1672,

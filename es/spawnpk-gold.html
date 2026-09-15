@@ -68,7 +68,6 @@
           <p class="spk-lead">Tu próxima mejora empieza aquí.</p>
           <p class="spk-description">Prepara tu próximo equipo PvP, una raid o ese objeto que llevas tiempo buscando. Compra oro de SpawnPK desde <strong>$9 por 1T</strong> y confirma el precio directamente con a6d9.</p>
           <div class="spk-main-actions"><a class="spk-button spk-gold" href="https://discord.com/users/640265737050652672" target="_blank" rel="noopener noreferrer" data-action="discord-profile">Consultar precio y stock en Discord <span>↗</span></a><a href="#spk-how">Cómo funciona la compra <span>↓</span></a></div>
-          <div class="spk-seller"><img src="../assets/spawnpk-sales/spk-a3aa103665e4.webp" alt="Avatar del vendedor a6d9" width="100" height="100" loading="eager" decoding="async"><div><strong>A6D9 · RSPS Gold Hub</strong><a href="#spk-reputation">Reseñas públicas en Eldorado y Sythe ↗</a></div></div>
           <div class="spk-game-detail" id="spk-upgrades">
   <div class="spk-cash-stack" role="img" aria-label="Cash Bag de 100M de SpawnPK">
     <div class="spk-cash-render" aria-hidden="true"></div>
@@ -77,30 +76,42 @@
   <div><span class="spk-kicker">PREPÁRATE PARA TU PRÓXIMA MEJORA</span><p>Equipo PvP. Mejoras para raids.<br>Ese objeto que tanto quieres.</p><span class="spk-subtle">Tu oro. Tu próximo objetivo.</span></div>
 </div>
 
+          <section class="spk-about-seller" aria-labelledby="spk-about-title">
+            <div class="spk-about-heading"><img src="../assets/spawnpk-sales/spk-a3aa103665e4.webp" alt="" width="100" height="100" decoding="async"><div><span class="spk-kicker">RSPS GOLD HUB</span><h2 id="spk-about-title">Conoce a a6d9</h2></div></div>
+            <p>Empecé en SoulSplit en 2015, ahorrando para una partyhat a base de horas de farmeo. Comprar oro me permitía ahorrar tiempo sin gastar tanto en donaciones. Así descubrí el mercado de oro RSPS.</p>
+            <p>Desde 2016 compro y vendo oro en los principales servidores. Esa experiencia guía mi forma de hacer cada intercambio, siempre con especial atención a la seguridad.</p>
+            <a class="spk-about-reviews" href="#spk-reputation">Reseñas en Eldorado y Sythe <span aria-hidden="true">↗</span></a>
+          </section>
         </div>
         <aside class="spk-quote" id="spk-rates" aria-label="Solicitud de precio de oro de SpawnPK"><span class="spk-alias" id="rates" aria-hidden="true"></span>
           <div class="spk-logo-panel"><img src="../assets/spawnpk-sales/spk-5cc3c74a1cf3.webp" alt="SpawnPK" width="240" height="135" loading="eager" decoding="async"></div>
           <h2 class="spk-rate-heading">Precio y disponibilidad del oro de SpawnPK</h2>
-          <p class="spk-price">Desde <strong data-rate-amount>$9</strong> <span>por 1T</span></p>
+          <p class="spk-price">Desde <strong data-rate-amount data-rate-usd="9">$9</strong> <span>por 1T</span></p>
           <p class="spk-subtle spk-rate-note">El precio depende de la cantidad y las existencias.<br>Las comisiones de pago son aparte. Confirma el precio por Discord.</p>
           <div class="spk-order-facts"><span>Compra mínima <strong>5T</strong></span><span>Precios en <strong>USD</strong></span></div>
           <div data-spawnpk-request-controls hidden>
-<div class="spk-quantity-label"><label for="spawnpk-amount">¿Cuánto oro quieres?</label><span>1T = 1 billón de monedas</span></div>
+<div class="spk-quantity-label"><label for="spawnpk-amount">¿Cuánto oro quieres?</label><span id="spk-gold-unit">1T = 1 billón de monedas</span></div>
           <div class="spk-presets" role="group" aria-label="Cantidades de oro">
   <button data-spawnpk-amount="5" aria-pressed="false"><span class="spk-inventory-item" aria-hidden="true"></span><span class="spk-inventory-label">5T</span></button>
   <button data-spawnpk-amount="10" aria-pressed="true"><span class="spk-inventory-item" aria-hidden="true"></span><span class="spk-inventory-label">10T</span></button>
   <button data-spawnpk-amount="25" aria-pressed="false"><span class="spk-inventory-item" aria-hidden="true"></span><span class="spk-inventory-label">25T</span></button>
   <button data-spawnpk-amount="50" aria-pressed="false"><span class="spk-inventory-item" aria-hidden="true"></span><span class="spk-inventory-label">50T</span></button>
 </div>
-          <div class="spk-input"><input id="spawnpk-amount" value="10" inputmode="numeric" pattern="[0-9]*" aria-describedby="spk-amount-limit spawnpk-amount-error" maxlength="4" autocomplete="off" aria-label="Cantidad personalizada de oro en T (billones)"><span>T</span></div>
+          <div class="spk-input"><input id="spawnpk-amount" value="10" inputmode="numeric" pattern="[0-9]*" aria-describedby="spk-gold-unit spk-amount-limit spawnpk-amount-error" maxlength="4" autocomplete="off"><span>T</span></div>
+          <p id="spawnpk-estimate" class="spk-estimate" data-estimate-prefix="Desde" hidden>
+            <span class="spk-estimate-inventory" aria-hidden="true"><span class="spk-estimate-bag"></span><span id="spawnpk-bag-stack" class="spk-estimate-stack"></span></span>
+            <span class="spk-estimate-summary"><span class="spk-estimate-label">TU ORO</span><strong id="spawnpk-estimate-value" aria-live="polite" aria-atomic="true"></strong><span id="spawnpk-bag-total" class="spk-estimate-bag-total" data-bag-label="bolsas de 100M"></span></span>
+            <span class="spk-estimate-note">Precio orientativo antes de comisiones. Confirma el precio final por Discord.</span>
+          </p>
           <p class="spk-amount-limit" id="spk-amount-limit">Solo números enteros · Elige entre 5 y 1000T.</p>
           <p class="spk-bulk-note">¿Quieres más de 1000T? <a href="https://discord.com/users/640265737050652672" target="_blank" rel="noopener noreferrer" data-action="discord-profile">Habla con a6d9 por Discord ↗</a></p>
           <p id="spawnpk-amount-error" class="spk-error" hidden role="alert">Introduce un número entero entre 5 y 1000T.</p>
           </div>
-<a class="spk-button spk-gold spk-wide" href="https://discord.com/users/640265737050652672" target="_blank" rel="noopener noreferrer" data-action="discord-profile">Abrir Discord <span>↗</span></a>
-          <div class="spk-request-tools"><button class="spk-copy-request copy-btn" data-copy-target="spawnpk-order-message" data-copy-success="Solicitud copiada" data-action="copy-spawnpk-order"><span class="spk-glyph" aria-hidden="true">◇</span> Copiar solicitud</button><button type="button" id="spawnpk-preview-toggle" class="spk-preview-toggle" aria-controls="spawnpk-message-panel" aria-expanded="true" hidden>Ver tu solicitud</button></div><div class="spk-message" id="spawnpk-message-panel"><pre id="spawnpk-order-message" data-spawnpk-example>Hola a6d9, me gustaría comprar oro de SpawnPK.
+<div class="spk-request-tools"><button type="button" class="spk-copy-request copy-btn" data-copy-target="spawnpk-order-message" data-copy-success="Solicitud copiada" data-action="copy-spawnpk-order"><span class="spk-glyph spk-copy-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" focusable="false"><rect x="8" y="8" width="12" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M15 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M11 12h6m-6 4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="spk-copy-label">Copiar solicitud</span></button><button type="button" id="spawnpk-preview-toggle" class="spk-preview-toggle" aria-controls="spawnpk-message-panel" aria-expanded="true" hidden>Ver tu solicitud</button></div>
+          <a class="spk-button spk-gold spk-wide" href="https://discord.com/users/640265737050652672" target="_blank" rel="noopener noreferrer" data-action="discord-profile">Abrir Discord y pegar <span>↗</span></a>
+          <div class="spk-message" id="spawnpk-message-panel"><pre id="spawnpk-order-message" data-spawnpk-example>Hola a6d9, me gustaría comprar oro de SpawnPK.
 Cantidad que necesito: 10T
-¿Hay disponibilidad? ¿Cuál es el precio total y qué método de pago puedo usar?</pre></div><p class="spk-flow-note">Copia tu solicitud y pégala en la conversación de Discord.</p>
+¿Hay disponibilidad? ¿Cuál es el precio total y qué método de pago puedo usar?</pre></div>
           <div class="spk-card-footer"><span>Discord: <b>a6d9</b></span><a href="#spk-safety">Verificar identidad del vendedor ↗</a></div>
         </aside>
 <div class="spk-assurances"><div><span class="spk-glyph" aria-hidden="true">◇</span><span><strong>Precio acordado antes del pago</strong></span></div><div><span class="spk-glyph" aria-hidden="true">◇</span><span><strong>Habla directamente con a6d9</strong></span></div><div><span class="spk-glyph" aria-hidden="true">◇</span><span><strong>Historial público de ventas</strong></span></div></div>
@@ -186,6 +197,19 @@ Cantidad que necesito: 10T
 
 
 
+<section class="spk-section spk-sell" id="spk-sell" aria-labelledby="spk-sell-title">
+  <div><span class="spk-kicker">PARA VENDEDORES</span><h2 id="spk-sell-title">¿Quieres vender oro de SpawnPK?</h2><p>a6d9 también compra oro a otros jugadores. Dinos cuánto quieres vender para consultar la tarifa de compra y si podemos aceptar tu cantidad.</p><p>Los pagos a vendedores se hacen en criptomonedas. Acuerda la moneda, la red y la tarifa por Discord antes de transferir el oro.</p></div>
+  <div class="spk-sell-contact">
+    <div class="spk-trade-heading"><span>TU ORO, POR CRIPTO</span><span class="spk-trade-partner">Intercambia con <strong>a6d9</strong></span></div>
+    <div class="spk-trade-exchange">
+      <div class="spk-trade-slot spk-trade-slot-gold"><span class="spk-trade-direction">TÚ VENDES</span><span class="spk-trade-bag" aria-hidden="true"></span><strong>Oro de SpawnPK</strong><span class="spk-trade-caption">Bolsas de 100M</span></div>
+      <div class="spk-trade-arrows"><svg viewBox="0 0 56 48" fill="none" aria-hidden="true" focusable="false"><path d="M5 14h44m-9-9 9 9-9 9" stroke="#e1bc6c" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/><path d="M51 34H7m9-9-9 9 9 9" stroke="#9dc8b3" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/></svg></div>
+      <div class="spk-trade-slot spk-trade-slot-crypto"><span class="spk-trade-direction">TÚ RECIBES</span><svg class="spk-trade-wallet" viewBox="0 0 120 112" fill="none" aria-hidden="true" focusable="false"><path d="M25 35 80 17l8 30" fill="#28483f" stroke="#91bda3" stroke-width="3" stroke-linejoin="round"/><path d="M19 39h76v57H19z" fill="#182c29" stroke="#759783" stroke-width="3" stroke-linejoin="round"/><path d="M19 39h76v10H19z" fill="#3e5b4c"/><path d="M77 59h25v24H77c-7 0-11-5-11-12s4-12 11-12Z" fill="#3b5746" stroke="#abd2b4" stroke-width="3"/><circle cx="79" cy="71" r="3" fill="#dbedd5"/><path d="M36 57 49 70 36 83 23 70Z" fill="#b9964e" stroke="#e7c87a" stroke-width="2"/><path d="m36 62 8 8-8 8-8-8Z" fill="#74572b"/></svg><strong>Criptomonedas</strong><span class="spk-trade-caption">En tu billetera</span></div>
+    </div>
+    <p class="spk-trade-note">La tarifa de compra se acuerda por Discord y es distinta al precio de venta mostrado arriba.</p>
+    <a class="spk-trade-cta" href="https://discord.com/users/640265737050652672" target="_blank" rel="noopener noreferrer" data-action="discord-sell-spawnpk">Consultar tarifa de compra <span aria-hidden="true">↗</span></a>
+  </div>
+</section>
 <section class="spk-section spk-bag-layout" id="spk-bags"><span class="spk-alias" id="cash-bags" aria-hidden="true"></span><div><span class="spk-kicker">ENTIENDE EL VALOR DE TU ORO</span><h2>Oro de SpawnPK y Cash Bags de 100M</h2><p>1T equivale a un billón de monedas de SpawnPK: 1 000 000 000 000. Una Cash Bag de 100M representa 100 millones de monedas. Confirma el formato y el valor total de la entrega.</p><a class="spk-text-gold" href="../spawnpk-guide.html" target="_blank" rel="noopener noreferrer">Consultar las guías de SpawnPK (en inglés) ↗</a></div><div class="spk-bag-table"><table><caption>Valor del oro en Cash Bags de 100M</caption><thead><tr><th>Oro</th><th>Cash Bags de 100M</th></tr></thead><tbody><tr><td>1T</td><td>10 000</td></tr><tr><td>10T</td><td>100 000</td></tr><tr><td>25T</td><td>250 000</td></tr></tbody></table><p>Ejemplos de conversión, no una lista de existencias o precios.</p></div></section>
     <section class="spk-section spk-identity-section" id="spk-safety" aria-labelledby="spk-identity-title"><span class="spk-alias" id="safety" aria-hidden="true"></span>
   <div><span class="spk-kicker">TU VENDEDOR</span><h2 id="spk-identity-title">Asegúrate de que sea a6d9</h2><p>Abre el perfil y comprueba el nombre de usuario y su ID. El nombre visible o el avatar por sí solos no identifican la cuenta.</p></div>
@@ -228,8 +252,8 @@ Cantidad que necesito: 10T
         <span>TU SOLICITUD</span>
         <p id="spawnpk-final-message" data-final-message>Hola a6d9, me gustaría comprar oro de SpawnPK.
 Cantidad que necesito: 10T
-¿Hay disponibilidad? ¿Cuál es el precio total y qué método de pago puedo usar?</p><button type="button" class="copy-btn spk-text-button" data-copy-target="spawnpk-order-message" data-copy-success="Solicitud copiada" data-action="copy-spawnpk-order">Copiar solicitud</button>
-        <a href="#spk-rates">Cambiar cantidad <span aria-hidden="true">↑</span></a>
+¿Hay disponibilidad? ¿Cuál es el precio total y qué método de pago puedo usar?</p><p id="spawnpk-final-help" class="spk-final-help" hidden>Elige una cantidad válida para preparar tu solicitud.</p><button type="button" class="copy-btn spk-text-button" data-copy-target="spawnpk-order-message" data-copy-success="Solicitud copiada" data-action="copy-spawnpk-order">Copiar solicitud</button>
+        <a href="#spawnpk-amount">Cambiar cantidad <span aria-hidden="true">↑</span></a>
       </div>
       <a class="spk-button spk-gold spk-final-button" href="https://discord.com/users/640265737050652672" target="_blank" rel="noopener noreferrer" data-action="discord-profile">Contactar con a6d9 en Discord <span aria-hidden="true">↗</span></a>
       <div class="spk-final-tools"><button class="copy-btn" data-copy-target="spk-username" data-copy-success="Nombre de usuario copiado" data-action="copy-discord"><span class="spk-glyph" aria-hidden="true">◇</span>Copiar usuario</button><a href="#spk-safety">Verificar identidad del vendedor <span aria-hidden="true">↗</span></a></div>

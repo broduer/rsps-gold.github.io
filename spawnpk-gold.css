@@ -48,7 +48,7 @@
 
 
 @font-face{font-family:'Spk Inventory';src:url(assets/spawnpk-sales/spk-fe43104752ad.ttf) format('truetype');font-weight:400;font-style:normal;font-display:swap}
-#spk-preview{--spk-bag-icon:url(assets/spawnpk-sales/spk-a6cdeb9f88b8.webp)}
+#spk-preview{--spk-bag-icon:url(assets/spawnpk-sales/cash-bag-396.webp)}
 #spk-preview .spk-quote{border-color:#90724a;border-radius:5px;background:linear-gradient(135deg,#342e26,#211f1d 57%,#191b20);box-shadow:0 12px 30px #0005,inset 0 0 0 3px #151515,inset 0 0 0 4px #66553e,inset 0 0 0 6px #29251f}
 #spk-preview .spk-quote:before,#spk-preview .spk-quote:after{color:#ad4138;text-shadow:0 1px #e49161,0 -1px #3b1411}
 #spk-preview .spk-logo-panel{border-color:#62513c;border-radius:3px;background:radial-gradient(ellipse at 50% 68%,#72291b35,#11151c 72%);box-shadow:inset 0 1px 0 #b08a4230,inset 0 -2px 0 #0008}
@@ -298,6 +298,15 @@
 }
 #spk-preview .spk-description { max-width: 36rem; }
 
+#spk-preview .spk-about-seller{margin-top:25px;padding-top:20px;border-top:1px solid #87704766;max-width:540px}
+#spk-preview .spk-about-heading{display:flex;align-items:center;gap:13px;margin-bottom:13px}
+#spk-preview .spk-about-heading img{width:48px;height:48px;border-radius:50%;border:1px solid #8a7751;box-shadow:0 3px 12px #0004}
+#spk-preview .spk-about-heading h2{font-size:21px;line-height:1.2;margin:4px 0 0;letter-spacing:-.3px;color:#f0e8d6}
+#spk-preview .spk-about-heading .spk-kicker{font-size:9px;letter-spacing:1.5px;color:#cbb077}
+#spk-preview .spk-about-seller p{font-size:14px;line-height:1.75;color:#c0c5cc;margin:0 0 10px}
+#spk-preview .spk-about-reviews{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:12px;color:#e5c276;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#e5c27655}
+#spk-preview .spk-about-reviews:hover{color:#ffdfa1;text-decoration-color:currentColor}
+@media(max-width:680px){#spk-preview .spk-about-seller{max-width:none;margin-top:22px}#spk-preview .spk-about-seller p{font-size:13px;line-height:1.7}}
 /* Keep buying terms readable within the existing inventory-style quote. */
 #spk-preview .spk-rate-heading {font-size:18px;line-height:1.4;text-align:center;letter-spacing:0;margin:0 0 6px;color:#efdfba}
 #spk-preview .spk-rate-note {font-size:13px;line-height:1.6;margin-bottom:14px}
@@ -306,6 +315,56 @@
 #spk-preview .spk-amount-limit {font-size:12px;line-height:1.6}
 #spk-preview .spk-bulk-note {font-size:12px;line-height:1.6;margin:0 0 14px;color:#c7c3ba}
 #spk-preview .spk-bulk-note a {color:#e1bc6c;text-decoration:underline;text-underline-offset:3px}
+#spk-preview .spk-estimate{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:12px 18px;padding:16px;margin:14px 0;border:1px solid #7e6840;border-radius:3px;background:radial-gradient(ellipse at top left,#69502433,transparent 70%),#191b18;box-shadow:inset 0 0 0 3px #111510}
+#spk-preview .spk-estimate[hidden]{display:none}
+#spk-preview .spk-estimate-inventory{position:relative;display:block;width:96px;height:100px;background:radial-gradient(ellipse at center,#ac7f2326,transparent 72%)}
+#spk-preview .spk-estimate-bag{position:absolute;inset:10px 4px 0;background:var(--spk-bag-icon) center/contain no-repeat;filter:drop-shadow(0 5px 4px #0007)}
+#spk-preview .spk-estimate-stack{position:absolute;top:0;left:0;width:100%;text-align:center;color:#ffff00;font:400 32px/1 'Spk Inventory',monospace;font-synthesis:none;letter-spacing:0;text-shadow:2px 2px 0 #000;white-space:nowrap;-webkit-font-smoothing:none}
+#spk-preview .spk-estimate-stack[data-stack-size="thousands"]{color:#fff}
+#spk-preview .spk-estimate-stack[data-stack-size="millions"]{color:#00ff80}
+#spk-preview .spk-estimate-summary{display:block;min-width:0}
+#spk-preview .spk-estimate-label{display:block;color:#d5ba7d;font-size:10px;font-weight:700;letter-spacing:1.4px;line-height:1.4;margin-bottom:5px}
+#spk-preview .spk-estimate strong{display:block;font-size:23px;line-height:1.3;color:#f0d18a}
+#spk-preview .spk-estimate-bag-total{display:block;margin-top:7px;color:#c8c8be;font-size:12px;line-height:1.6}
+#spk-preview .spk-estimate-note{grid-column:1/-1;display:block;border-top:1px solid #51462f;padding-top:11px;color:#bfc4bd;font-size:12px;line-height:1.6}
+@media(max-width:400px){#spk-preview .spk-estimate{padding:12px;column-gap:10px;grid-template-columns:80px minmax(0,1fr)}#spk-preview .spk-estimate-inventory{width:80px;height:88px}#spk-preview .spk-estimate strong{font-size:19px}}
+#spk-preview .spk-request-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;margin:14px 0 12px}
+#spk-preview .spk-request-tools .spk-copy-request{width:100%;min-height:56px;justify-content:flex-start;gap:12px;padding:9px 14px;border:1px solid #79725e;border-bottom:2px solid #504a3c;border-radius:5px;background:linear-gradient(135deg,#313733,#202622);color:#f2e9d5;text-align:left;box-shadow:inset 0 1px 0 #eee1ba14,0 3px 7px #0003;cursor:pointer}
+#spk-preview .spk-copy-icon{display:flex;flex:0 0 32px;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #a58a4b66;border-radius:4px;background:linear-gradient(135deg,#b7954724,#b7954708);color:#efd18c}
+#spk-preview .spk-copy-request .spk-copy-icon svg{width:21px;height:21px}
+#spk-preview .spk-copy-label{min-width:0;font-size:13px;font-weight:600;line-height:1.45}
+#spk-preview .spk-request-tools .spk-copy-request:hover:not(:disabled){background:linear-gradient(135deg,#3d4439,#2b322a);border-color:#c0a56b}
+#spk-preview .spk-request-tools .spk-copy-request:active:not(:disabled){box-shadow:inset 0 2px 5px #0005;background:#242b24}
+#spk-preview .spk-request-tools .spk-preview-toggle{max-width:100px;text-align:center;font-size:12px;line-height:1.5}
+@media(max-width:400px){#spk-preview .spk-request-tools{gap:10px}#spk-preview .spk-request-tools .spk-copy-request{padding-inline:10px;gap:9px}#spk-preview .spk-request-tools .spk-preview-toggle{max-width:78px}#spk-preview .spk-copy-label{font-size:12px}}
+#spk-preview .spk-final-message .spk-final-help{color:#e8c985;font-size:14px;line-height:1.7}
+#spk-preview .spk-sell{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:36px;align-items:center;background:linear-gradient(110deg,#20231f,#121820)}
+#spk-preview .spk-sell h2{font-size:26px}
+#spk-preview .spk-sell p{font-size:14px}
+#spk-preview .spk-sell-contact{padding:20px;border:1px solid #8b7246;border-radius:4px;background:linear-gradient(135deg,#302b22,#191d1d 65%);box-shadow:inset 0 0 0 3px #191a17,inset 0 0 0 4px #514730,0 12px 28px #0003}
+#spk-preview .spk-trade-heading{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px 16px;padding-bottom:15px;border-bottom:1px solid #635334}
+#spk-preview .spk-trade-heading>span:first-child{color:#edcf87;font-size:10px;font-weight:700;letter-spacing:1.4px}
+#spk-preview .spk-trade-partner{font-size:11px;color:#bbc1bd}
+#spk-preview .spk-trade-partner strong{color:#efdfbd}
+#spk-preview .spk-trade-exchange{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);align-items:stretch;gap:8px;margin-top:20px}
+#spk-preview .spk-trade-slot{display:flex;flex-direction:column;align-items:center;min-width:0;padding:12px 6px 14px;border:1px solid #675736;background:radial-gradient(ellipse at 50% 45%,#59411d55,transparent 75%),#171916;box-shadow:inset 0 0 0 2px #10130f;text-align:center}
+#spk-preview .spk-trade-slot-crypto{border-color:#476253;background:radial-gradient(ellipse at 50% 45%,#305c4555,transparent 75%),#141c1a}
+#spk-preview .spk-trade-direction{font-size:9px;font-weight:700;letter-spacing:1.3px;line-height:1.5;color:#e3c37c}
+#spk-preview .spk-trade-slot-crypto .spk-trade-direction{color:#acd2bb}
+#spk-preview .spk-trade-bag,#spk-preview .spk-trade-wallet{display:block;width:104px;max-width:100%;height:112px;margin:8px 0;filter:drop-shadow(0 8px 6px #0006)}
+#spk-preview .spk-trade-bag{background:var(--spk-bag-icon) center/contain no-repeat}
+#spk-preview .spk-trade-slot>strong{font-size:14px;line-height:1.35;color:#f0e6ce}
+#spk-preview .spk-trade-slot-crypto>strong{color:#dce9df}
+#spk-preview .spk-trade-caption{font-size:10px;line-height:1.5;margin-top:auto;padding-top:5px;color:#b5bdb7}
+#spk-preview .spk-trade-arrows{align-self:center}
+#spk-preview .spk-trade-arrows svg{display:block;width:100%;height:44px;filter:drop-shadow(0 2px 2px #0008)}
+#spk-preview .spk-sell .spk-trade-note{font-size:12px;line-height:1.65;margin:16px 0;color:#c0c3bd}
+#spk-preview .spk-trade-cta{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:46px;padding:10px 14px;border:1px solid #ae8a48;border-radius:2px;background:linear-gradient(#463b28,#302b20);color:#f2d48d;font-size:13px;font-weight:700;text-decoration:none;box-shadow:inset 0 1px #e3c37c22}
+#spk-preview .spk-trade-cta:hover{background:linear-gradient(#58482e,#403623);border-color:#dfbd75}
+#spk-preview .spk-trade-cta:focus-visible{outline:2px solid #f2d48d;outline-offset:4px}
+@media(min-width:681px) and (max-width:1000px){#spk-preview .spk-sell{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:24px}}
+@media(max-width:380px){#spk-preview .spk-sell-contact{padding:16px}#spk-preview .spk-trade-exchange{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);gap:6px}#spk-preview .spk-trade-slot>strong{font-size:12px}}
+@media(max-width:680px){#spk-preview .spk-sell{grid-template-columns:minmax(0,1fr);gap:14px}#spk-preview .spk-request-tools .spk-copy-request{flex:1}#spk-preview .spk-request-tools .spk-preview-toggle{padding-inline:4px}}
 @media (min-width: 981px) {
   #spk-preview .spk-hero-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

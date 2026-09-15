@@ -25,6 +25,7 @@ rechecked before future updates.
 | SpawnPK response and delivery | Discord replies usually take about 30 minutes; delivery normally takes about 5 minutes after payment. Both times can vary considerably. No opening hours or guaranteed deadline supplied | Owner confirmation | Supplied directly on 2026-09-15 | Yes, always qualified as typical and variable | High |
 | SpawnPK payment fees | Payment-method fees are extra, paid by the buyer and not covered by the seller | Owner confirmation | Supplied directly on 2026-09-15 | Yes; no invented fee amounts | High |
 | SpawnPK stock confirmation | Whether gold is available immediately or requires a wait is agreed on Discord before payment | Owner confirmation | Supplied directly on 2026-09-15 | Yes | High |
+| SpawnPK sellers | a6d9 buys SpawnPK gold from players and pays sellers in cryptocurrency. Owner requested a short seller section. Buy rate and acceptance are confirmed separately; no payout time or specific cryptocurrency is promised | Owner confirmation | Supplied directly on 2026-09-15 during Claude review follow-up | Yes | High |
 | SpawnPK undeliverable paid orders | If a paid order cannot be delivered, the buyer can choose a refund instead of waiting for gold to become available | Owner confirmation | Supplied directly on 2026-09-15 | Yes; no promise about refund timing or payment-fee reimbursement | High |
 | Alora | Official content refers to coins, GP, platinum tokens, store tokens, and activity-specific points | Official site, store, and forum | https://www.alora.io/ and https://www.alora.io/store/ and https://www.alora.io/forums/topic/91090-grand-exchange/ | Yes, without equating currencies | Medium |
 | RuneX | Community documentation distinguishes coins/GP and platinum tokens from Rune Coins, RuneX Points, activity points, special currencies, and tokens | Community wiki; no current official glossary found | https://runexrsps.fandom.com/wiki/Currency_Guide | Yes, labelled as community documentation | High |
@@ -42,6 +43,8 @@ rechecked before future updates.
 | Generic search language | Google autocomplete surfaced commercial server-name variants, with strong Impact coverage and direct buy variants for Roat Pkz, SpawnPK, Alora, Orion, Ferox, and RuneX | Public autocomplete sample | Sampled 2026-07-24 | Report and briefs | High |
 
 ## Maintenance notes
+
+- Owner biography, confirmed directly on 2026-09-15: a6d9 started playing SoulSplit in 2015 and discovered the RSPS gold market while saving for a partyhat. Buying gold offered an alternative to lengthy money-making activities and high donation spending. Has bought and sold RSPS gold across the major servers since 2016 and prioritizes safety when choosing trade methods. Use as a first-person owner account; do not turn experience into a guarantee of risk-free trading.
 
 - Keep homepage and primary-directory order as Impact, Roat Pkz, SpawnPK.
 - Do not turn that order into a public “most popular,” “largest market,” or similar claim.

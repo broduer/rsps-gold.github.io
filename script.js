@@ -568,26 +568,42 @@
   });
 
   document.querySelectorAll(".copy-btn").forEach(function (button) {
+    // Preserve icons, accessible attributes and nested labels during feedback.
+    var labelNodes = [];
+    var labelWalker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);
+    var labelNode;
+    while ((labelNode = labelWalker.nextNode())) {
+      if (labelNode.nodeValue.trim() && !labelNode.parentElement.closest('[aria-hidden="true"], svg')) {
+        labelNodes.push({ node: labelNode, value: labelNode.nodeValue });
+      }
+    }
+    var feedbackTimer;
+    var copySequence = 0;
     button.addEventListener("click", function () {
+      var sequence = ++copySequence;
       var text = getCopyText(button);
       var successMessage = button.getAttribute("data-copy-success") || copyMessages.copied;
       reportInteraction(button.getAttribute("data-action"), button);
 
-      var originalText = button.textContent;
       if (!text) {
         showCopied(copyMessages.failed);
         return;
       }
 
       copyText(text).then(function (copied) {
+        if (sequence !== copySequence) return;
         showCopied(copied ? successMessage : copyMessages.failed);
         var copyAction = button.getAttribute("data-action");
         if (copyAction) reportInteraction(copyAction + (copied ? "-success" : "-failed"), button);
         if (!copied) return;
 
-        button.textContent = successMessage;
-        window.setTimeout(function () {
-          button.textContent = originalText;
+        if (!labelNodes.length) return; // Icon-only buttons use the status toast.
+        window.clearTimeout(feedbackTimer);
+        labelNodes.forEach(function (entry, index) {
+          entry.node.nodeValue = index === 0 ? entry.value.replace(entry.value.trim(), successMessage) : "";
+        });
+        feedbackTimer = window.setTimeout(function () {
+          labelNodes.forEach(function (entry) { entry.node.nodeValue = entry.value; });
         }, 1400);
       });
     });

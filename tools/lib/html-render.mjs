@@ -431,7 +431,7 @@ export function renderSupportedServersFaq(html, page, answer) {
 function applyRateToText(value, server, formatUsdAmount, language = "en") {
   if (!server.publishedRate || !server.currency.units) return value;
   value = value.replace(/(<strong\b[^>]*\bdata-rate-amount(?:="[^"]*")?[^>]*>)[\s\S]*?(<\/strong>)/g,
-    (_, opening, closing) => opening + "$" + formatUsdAmount(server.publishedRate.usd, { fractionDigits: server.publishedRate.fractionDigits }) + closing);
+    (_, opening, closing) => setTagAttribute(opening, "data-rate-usd", String(server.publishedRate.usd)) + "$" + formatUsdAmount(server.publishedRate.usd, { fractionDigits: server.publishedRate.fractionDigits }) + closing);
   const currentUnits = server.currency.units;
   const templateUnits = server.currency.templateUnits || currentUnits;
   const unitStyles = ["short", "long"].filter(
